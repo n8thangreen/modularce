@@ -3,18 +3,22 @@ library(tibble)
 library(dplyr)
 
 decision_tree <- tibble(
-  decision = rep(c("Treatment A", "Treatment B"), each = 3),
-  outcome = c("Success", "Failure", "Adverse Event", "Success", "Failure", "Adverse Event"),
-  probability = c(0.7, 0.2, 0.1, 0.6, 0.3, 0.1),
-  cost = c(1000, 2000, 500, 800, 2500, 600),
-  effectiveness = c(0.9, 0.5, 0.1, 0.85, 0.4, 0.2)
+  decision = rep(c("Treatment A", "Treatment B"), each = 2),
+  outcome = c("Success", "Failure",
+              "Success", "Failure"),
+  probability = c(0.7, 0.2, 0.6, 0.3),
+  cost = c(1000, 2000, 800, 2500),
+  effectiveness = c(0.9, 0.5, 0.85, 0.4)
 )
 
 # define S3 class
 # constructors
 
 DecisionTree <- function(data) {
-  structure(list(data = data), class = c("DecisionTree", "Model"))
+  call_obj <- match.call()
+  structure(list(data = data),
+            call = call_obj,
+            class = c("DecisionTree", "Model"))
 }
 
 MarkovModel <- function(model, ...) {
@@ -22,39 +26,73 @@ MarkovModel <- function(model, ...) {
 }
 
 # first argument?
-MarkovModel.default <- function(model = NA, init_probs, trans_matrix = NA, n_cycles = 10) {
+MarkovModel.default <- function(model = NA,
+                                init_probs = NA,
+                                trans_matrix = NA,
+                                cost_matrix = NA,
+                                q_matrix = NA,
+                                n_cycles = 10) {
+  call_obj <- match.call()
+  
   structure(list(init_probs = init_probs,
                  trans_matrix = trans_matrix,
+                 cost_matrix = cost_matrix,
+                 q_matrix = q_matrix,
                  n_cycles = n_cycles),
+            call = call_obj,
             class = c("MarkovModel", "Model"))
 }
 
 # decorator on constructor
 MarkovModel.DecisionTree <- function(model, ...) {
-  term_probs <- model$term_probs
-  init_probs <- map_terminal_to_markov(term_probs, mapping)
   
-  nextMethod(generic = MarkovModel, object = model, init_probs, ...)
-}
-
-CombinedModel <- function(...) {
-  args <- list(...)
-  
-  if (any(sapply(args, inherits) != "Model")) {
-    stop("All arguments must be of class 'Model'")
+  init_probs <- function(model) {
+    term_probs <- model$term_probs
+    map_terminal_to_markov(term_probs, mapping)
   }
   
-  structure(args, class = "CombinedModel")
+  NextMethod(generic = MarkovModel, object = model, init_probs, ...)
 }
 
-# infix version
-`$->$` <- function(mod1, mod2) {
+# only for two models at the moment
+#
+CombinedModel <- function(mod1, mod2) {
   
   if (!inherits(mod1, "Model") || !inherits(mod2, "Model")) {
     stop("All arguments must be of class 'Model'")
   }
   
-  structure(list(mod1, mod2), class = "CombinedModel")
+  # modify the call object to dispatch on mod1
+  mod2_call <- attr(mod2, "call")
+  mod2_call$model <- mod1
+  
+  # replace with the generic name
+  class_names <- as.character(mod2_call[[1]]) |> strsplit("\\.") |> unlist()
+  mod2_call[[1]] <- as.name(class_names[1]) 
+  
+  mod21 <- eval(mod2_call)
+  
+  structure(list(mod1, mod21), class = "CombinedModel")
+}
+
+# infix version
+`%->%` <- function(mod1, mod2) {
+  
+  if (!inherits(mod1, "Model") || !inherits(mod2, "Model")) {
+    stop("All arguments must be of class 'Model'")
+  }
+
+  # modify the call object to dispatch on mod1
+  mod2_call <- attr(mod2, "call")
+  mod2_call$model <- mod1
+  
+  # replace with the generic name
+  class_names <- as.character(mod2_call[[1]]) |> strsplit("\\.") |> unlist()
+  mod2_call[[1]] <- as.name(class_names[1]) 
+  
+  mod21 <- eval(mod2_call)
+  
+  structure(list(mod1, mod21), class = "CombinedModel")
 }
 
 ###
@@ -72,18 +110,10 @@ run_model.DecisionTree <- function(model) {
     )
 }
 
-#
-run_to_markov.DecisionTree <- function(model) {
-  function(model, mapping) {
-    res <- run_model(model)
-    term_probs <- model$term_probs
-    res$init_probs <- map_terminal_to_markov(term_probs, mapping)
-    res
-  }
-}
-
 run_model.MarkovModel <- function(model) {
-  
+  list(
+    expected_cost = 100,
+    expected_effectiveness = 1)
 }
 
 run_model.CombinedModel <- function(model) {
@@ -123,3 +153,47 @@ map_terminal_to_markov <- function(probs, mapping) {
 
 }
 
+##############################
+# example
+
+dt <- DecisionTree(decision_tree)
+
+trans_prob_mat <- 
+  array(c(0.9, 0.1, 0.2, 0.8,
+          0.9, 0.1, 0.2, 0.8),
+        dim = c(2,2,2),
+        dimnames = list(NULL, NULL, c("A", "B")))
+
+cost_mat <- 
+  array(c(1000, 2000, 800, 2500,
+          1000, 2000, 800, 2500),
+        dim = c(2,2,2),
+        dimnames = list(NULL, NULL, c("A", "B")))
+
+q_mat <- 
+  array(c(1, 0, 1, 0,
+          1, 0, 1, 0),
+        dim = c(2,2,2),
+        dimnames = list(NULL, NULL, c("A", "B")))
+
+# can either chain the models so include dt as first argument
+mm <- MarkovModel(dt, trans_matrix = trans_prob_mat,
+                  cost_matrix = cost_mat, q_matrix = q_mat)
+
+# or create independently and link within CombinedModel()
+mm <- MarkovModel(trans_matrix = trans_prob_mat,
+                  cost_matrix = cost_mat, q_matrix = q_mat)
+
+full_model <- CombinedModel(dt, mm)
+
+res <- run_model(full_model)
+
+
+## or link after creating the models
+
+mm <- MarkovModel(trans_matrix = trans_prob_mat,
+                  cost_matrix = cost_mat,
+                  q_matrix = q_mat)
+
+
+full_model <- dt %->% mm
