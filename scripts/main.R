@@ -95,53 +95,81 @@ CombinedModel <- function(mod1, mod2) {
   structure(list(mod1, mod21), class = "CombinedModel")
 }
 
-###
+##########
+# runners
 
 run_model <- function(model, ...) {
   UseMethod("run_model")
 }
 
 run_model.DecisionTree <- function(model) {
-  model$data %>%
+  res <- 
+    model$data %>%
     group_by(decision) %>%
     summarise(
       expected_cost = sum(probability * cost),
       expected_effectiveness = sum(probability * effectiveness)
     )
+  
+  structure(res,
+            class = c("output", class(model)))
 }
 
 run_model.MarkovModel <- function(model) {
-  list(
-    expected_cost = 100,
-    expected_effectiveness = 1)
+  res <- data.frame(
+    decision = c("Treatment A", "Treatment B"),
+    expected_cost = c(100, 100),
+    expected_effectiveness = c(1,1))
+  
+  structure(res,
+            class = c("output", class(model)))
 }
 
 run_model.CombinedModel <- function(model) {
   
-  for (i in 1:length(model)) {
-    model_results[[i]] <- run_model(model[[i]])
+  res <- list()
+  
+  for (i in seq_along(model)) {
+    res[[i]] <- run_model(model[[i]])
   }
   
-  model_results
+  structure(res,
+            class = c("output", class(model)))
 }
 
+analysis <- function(results, ...) {
+  c(get_costs(results),
+    get_effects(results))
+}
+
+##########
 # helpers
 
+get_costs <- function(results, ...) {
+  UseMethod("get_costs")
+}
+
 #
-get_costs.DecisionTree <- function(model) {
+get_costs.default <- function(results) {
+  stop("No method for this model")
+}
+
+#
+get_costs.DecisionTree <- function(results) {
   results$expected_cost
 }
 
 #
-get_costs.MarkovModel <- function(model) {
-  results$cumulative_cost
+get_costs.MarkovModel <- function(results) {
+  results$expected_cost
 }
 
 #
-get_costs.CombinedModel <- function(model) {
+get_costs.CombinedModel <- function(results) {
+
   total_cost <- 0
-  for (i in 1:length(model)) {
-    total_cost <- total_cost + get_costs(model)
+  for (i in seq_along(results)) {
+    total_cost <- total_cost + get_costs(results[[i]])
   }
   total_cost
 }
@@ -186,10 +214,12 @@ mm <- MarkovModel(trans_matrix = trans_prob_mat,
 
 full_model <- CombinedModel(dt, mm)
 
-res <- run_model(full_model)
+sim_res <- run_model(full_model)
 
+# could use BCEA package for this
+cea_res <- analysis(sim_res)
 
-## or link after creating the models
+## or link after creating the models using infix
 
 mm <- MarkovModel(trans_matrix = trans_prob_mat,
                   cost_matrix = cost_mat,
