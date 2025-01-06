@@ -86,17 +86,7 @@ CombinedModel <- function(mod1, mod2, ...) {
 }
 
 `%->%.Model` <- function(mod1, mod2) {
-  # modify the call object to dispatch on mod1
-  mod2_call <- attr(mod2, "call")
-  mod2_call$model <- mod1
-  
-  # replace with the generic name
-  class_names <- as.character(mod2_call[[1]]) |> strsplit("\\.") |> unlist()
-  mod2_call[[1]] <- as.name(class_names[1]) 
-  
-  mod21 <- eval(mod2_call)
-  
-  structure(list(mod1, mod21), class = "CombinedModel")
+  CombineModel(mod1, mod2)
 }
 
 ##########
