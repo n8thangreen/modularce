@@ -220,12 +220,12 @@ q_mat <-
         dim = c(2,2,2),
         dimnames = list(NULL, NULL, c("A", "B")))
 
-# mapping from terminal nodes to Markov states
+# mapping from decision tree terminal nodes to Markov states
 mapping <- c(1, 2, 2, 1)
 
 # can either chain the models so include dt as first argument
-mm <- MarkovModel(dt, trans_matrix = trans_prob_mat,
-                  cost_matrix = cost_mat, q_matrix = q_mat)
+mm0 <- MarkovModel(dt, trans_matrix = trans_prob_mat,
+                   cost_matrix = cost_mat, q_matrix = q_mat)
 
 # or create independently and link within CombinedModel()
 mm <- MarkovModel(trans_matrix = trans_prob_mat,
@@ -240,8 +240,5 @@ sim_res <- run_model(full_model)
 
 ## or link after creating the models using infix
 
-mm <- MarkovModel(trans_matrix = trans_prob_mat,
-                  cost_matrix = cost_mat,
-                  q_matrix = q_mat)
-
-full_model <- dt %->% mm
+##TODO: need additional mapping argument
+# full_model <- dt %->% mm
