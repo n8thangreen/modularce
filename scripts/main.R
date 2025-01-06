@@ -49,7 +49,7 @@ MarkovModel.DecisionTree <- function(model, mapping, ...) {
   
   init_probs <- map_terminal_to_markov(model$data$probability, mapping)
   
-  NextMethod(generic = MarkovModel, object = model, init_probs, ...)
+  NextMethod(generic = MarkovModel, object = model, init_probs = init_probs, ...)
 }
 
 # only for two models at the moment
@@ -62,17 +62,12 @@ CombinedModel <- function(mod1, mod2, ...) {
   
   # modify the call object to dispatch on mod1
   mod2_call <- attr(mod2, "call")
-  mod2_call$model <- mod1
   
   # replace with the generic name
   class_names <- as.character(mod2_call[[1]]) |> strsplit("\\.") |> unlist()
-  mod2_call[[1]] <- as.name(class_names[1]) 
-  
-  # include extra arguments
-  new_args <- c(as.list(mod2_call[-1]), list(...))
-  mod2_call <- as.call(c(mod2_call[[1]], new_args))
-  
-  mod21 <- eval(mod2_call)
+
+  mod21 <- do.call(what = class_names[1],
+                   args = c(model = list(mod1), mod2, list(...)))
   
   structure(list(mod1, mod21), class = "CombinedModel")
 }
