@@ -31,8 +31,9 @@ MarkovModel.default <- function(model = NA,
                                 trans_matrix = NA,
                                 cost_matrix = NA,
                                 q_matrix = NA,
-                                n_cycles = 10) {
+                                n_cycles = 10, ...) {
   call_obj <- match.call()
+  extra_args <- list(...)
   
   structure(list(init_probs = init_probs,
                  trans_matrix = trans_matrix,
@@ -44,19 +45,16 @@ MarkovModel.default <- function(model = NA,
 }
 
 # decorator on constructor
-MarkovModel.DecisionTree <- function(model, ...) {
+MarkovModel.DecisionTree <- function(model, mapping, ...) {
   
-  init_probs <- function(model) {
-    term_probs <- model$term_probs
-    map_terminal_to_markov(term_probs, mapping)
-  }
+  init_probs <- map_terminal_to_markov(model$data$probability, mapping)
   
   NextMethod(generic = MarkovModel, object = model, init_probs, ...)
 }
 
 # only for two models at the moment
 #
-CombinedModel <- function(mod1, mod2) {
+CombinedModel <- function(mod1, mod2, ...) {
   
   if (!inherits(mod1, "Model") || !inherits(mod2, "Model")) {
     stop("All arguments must be of class 'Model'")
@@ -70,6 +68,10 @@ CombinedModel <- function(mod1, mod2) {
   class_names <- as.character(mod2_call[[1]]) |> strsplit("\\.") |> unlist()
   mod2_call[[1]] <- as.name(class_names[1]) 
   
+  # include extra arguments
+  new_args <- c(as.list(mod2_call[-1]), list(...))
+  mod2_call <- as.call(c(mod2_call[[1]], new_args))
+  
   mod21 <- eval(mod2_call)
   
   structure(list(mod1, mod21), class = "CombinedModel")
@@ -77,11 +79,18 @@ CombinedModel <- function(mod1, mod2) {
 
 # infix version
 `%->%` <- function(mod1, mod2) {
-  
-  if (!inherits(mod1, "Model") || !inherits(mod2, "Model")) {
-    stop("All arguments must be of class 'Model'")
-  }
+  UseMethod("%->%")
+}
 
+`%->%.default` <- function(mod1, mod2) {
+  if (!inherits(mod2, "Model")) {
+    stop("All arguments must be of class 'Model'")
+  } else {
+    stop("No method for this model")
+  }
+}
+
+`%->%.Model` <- function(mod1, mod2) {
   # modify the call object to dispatch on mod1
   mod2_call <- attr(mod2, "call")
   mod2_call$model <- mod1
@@ -116,6 +125,9 @@ run_model.DecisionTree <- function(model) {
 }
 
 run_model.MarkovModel <- function(model) {
+  
+  init_probs <- model$init_probs
+  
   res <- data.frame(
     decision = c("Treatment A", "Treatment B"),
     expected_cost = c(100, 100),
@@ -179,6 +191,10 @@ get_costs.CombinedModel <- function(results) {
 #
 map_terminal_to_markov <- function(probs, mapping) {
 
+  indices <- sort(unique(mapping))
+  
+  # sum probabilities by group
+  sapply(indices, \(x) sum(probs[x]))
 }
 
 ##############################
@@ -204,6 +220,9 @@ q_mat <-
         dim = c(2,2,2),
         dimnames = list(NULL, NULL, c("A", "B")))
 
+# mapping from terminal nodes to Markov states
+mapping <- c(1, 2, 2, 1)
+
 # can either chain the models so include dt as first argument
 mm <- MarkovModel(dt, trans_matrix = trans_prob_mat,
                   cost_matrix = cost_mat, q_matrix = q_mat)
@@ -212,18 +231,17 @@ mm <- MarkovModel(dt, trans_matrix = trans_prob_mat,
 mm <- MarkovModel(trans_matrix = trans_prob_mat,
                   cost_matrix = cost_mat, q_matrix = q_mat)
 
-full_model <- CombinedModel(dt, mm)
+full_model <- CombinedModel(dt, mm, mapping = mapping)
 
 sim_res <- run_model(full_model)
 
 # could use BCEA package for this
-cea_res <- analysis(sim_res)
+# cea_res <- analysis(sim_res)
 
 ## or link after creating the models using infix
 
 mm <- MarkovModel(trans_matrix = trans_prob_mat,
                   cost_matrix = cost_mat,
                   q_matrix = q_mat)
-
 
 full_model <- dt %->% mm
