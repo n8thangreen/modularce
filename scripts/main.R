@@ -211,7 +211,8 @@ mapping <- c(1, 2, 2, 1)
 # can either chain the models so include dt as first argument
 mm0 <- dt |>
        MarkovModel(trans_matrix = trans_prob_mat,
-                   cost_matrix = cost_mat, q_matrix = q_mat)
+                   cost_matrix = cost_mat, q_matrix = q_mat,
+                   mapping = mapping)
 
 # or create independently and link within CombinedModel()
 mm <- MarkovModel(trans_matrix = trans_prob_mat,
