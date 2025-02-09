@@ -221,8 +221,9 @@ map_markov_to_decision <- function(markov_result) {
   )
 }
 
-###############################
+#######################################
 # define the update_model S3 functions
+# a kind of double dispatch approach
 
 update_model <- function(model, previous) {
   UseMethod("update_model")
