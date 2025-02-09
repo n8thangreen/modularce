@@ -52,7 +52,7 @@ MarkovModel.DecisionTree <- function(model, mapping, ...) {
   
   init_probs <- map_terminal_to_markov(model$data$probability, mapping)
   
-  NextMethod(generic = MarkovModel, object = model, init_probs, ...)
+  NextMethod(generic = MarkovModel, object = model, init_probs = init_probs, ...)
 }
 
 # only for two models at the moment
@@ -65,17 +65,12 @@ CombinedModel <- function(mod1, mod2, ...) {
   
   # modify the call object to dispatch on mod1
   mod2_call <- attr(mod2, "call")
-  mod2_call$model <- mod1
   
   # replace with the generic name
   class_names <- as.character(mod2_call[[1]]) |> strsplit("\\.") |> unlist()
-  mod2_call[[1]] <- as.name(class_names[1]) 
-  
-  # include extra arguments
-  new_args <- c(as.list(mod2_call[-1]), list(...))
-  mod2_call <- as.call(c(mod2_call[[1]], new_args))
-  
-  mod21 <- eval(mod2_call)
+
+  mod21 <- do.call(what = class_names[1],
+                   args = c(model = list(mod1), mod2, list(...)))
   
   structure(list(mod1, mod21), class = "CombinedModel")
 }
@@ -86,25 +81,15 @@ CombinedModel <- function(mod1, mod2, ...) {
 }
 
 `%->%.default` <- function(mod1, mod2) {
-  stop("No method for this model")
+  if (!inherits(mod2, "Model")) {
+    stop("All arguments must be of class 'Model'")
+  } else {
+    stop("No method for this model")
+  }
 }
 
 `%->%.Model` <- function(mod1, mod2) {
-  if (!inherits(mod2, "Model")) {
-    stop("All arguments must be of class 'Model'")
-  }
-  
-  # modify the call object to dispatch on mod1
-  mod2_call <- attr(mod2, "call")
-  mod2_call$model <- mod1
-  
-  # replace with the generic name
-  class_names <- as.character(mod2_call[[1]]) |> strsplit("\\.") |> unlist()
-  mod2_call[[1]] <- as.name(class_names[1]) 
-  
-  mod21 <- eval(mod2_call)
-  
-  structure(list(mod1, mod21), class = "CombinedModel")
+  CombinedModel(mod1, mod2)
 }
 
 ##########
@@ -227,8 +212,10 @@ q_mat <-
 mapping <- c(1, 2, 2, 1)
 
 # can either chain the models so include dt as first argument
-mm0 <- MarkovModel(dt, trans_matrix = trans_prob_mat,
-                   cost_matrix = cost_mat, q_matrix = q_mat)
+mm0 <- dt |>
+       MarkovModel(trans_matrix = trans_prob_mat,
+                   cost_matrix = cost_mat, q_matrix = q_mat,
+                   mapping = mapping)
 
 # or create independently and link within CombinedModel()
 mm <- MarkovModel(trans_matrix = trans_prob_mat,
