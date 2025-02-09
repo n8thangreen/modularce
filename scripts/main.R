@@ -1,3 +1,5 @@
+# main script
+#
 
 library(tibble)
 library(dplyr)
@@ -14,7 +16,11 @@ decision_tree <- tibble(
 # define S3 class
 # constructors
 
-DecisionTree <- function(data) {
+DecisionTree <- function(data, ...) {
+  UseMethod("DecisionTree")
+}
+
+DecisionTree.default <- function(data, ...) {
   call_obj <- match.call()
   structure(list(data = data),
             call = call_obj,
@@ -25,16 +31,12 @@ MarkovModel <- function(model, ...) {
   UseMethod("MarkovModel")
 }
 
-MarkovModel.default <- function(model = NA, ...) {
-  stop("No method for this model")
-}
-
-MarkovModel.Model <- function(model = NA,
-                              init_probs = NA,
-                              trans_matrix = NA,
-                              cost_matrix = NA,
-                              q_matrix = NA,
-                              n_cycles = 10, ...) {
+MarkovModel.default <- function(model = NA,
+                                init_probs = NA,
+                                trans_matrix = NA,
+                                cost_matrix = NA,
+                                q_matrix = NA,
+                                n_cycles = 10, ...) {
   call_obj <- match.call()
   extra_args <- list(...)
   
@@ -47,32 +49,61 @@ MarkovModel.Model <- function(model = NA,
             class = c("MarkovModel", "Model"))
 }
 
+
 # decorator on constructor
 MarkovModel.DecisionTree <- function(model, mapping, ...) {
   
   init_probs <- map_terminal_to_markov(model$data$probability, mapping)
   
-  NextMethod(generic = MarkovModel, object = model, init_probs = init_probs, ...)
+  NextMethod(generic = MarkovModel,
+             object = model,
+             init_probs = init_probs, ...)
+}
+
+##TODO:
+DecisionTree.MarkovModel <- function(data, ...) {
+  
+  NextMethod(generic = DecisionTree,
+             object = data, ...)
 }
 
 # only for two models at the moment
 #
-CombinedModel <- function(mod1, mod2, ...) {
+CombinedModel <- function(modelchain, ...) {
   
-  if (!inherits(mod1, "Model") || !inherits(mod2, "Model")) {
-    stop("All arguments must be of class 'Model'")
+  for (i in seq_along(modelchain)) {
+    if (!inherits(i, "Model")) {
+      stop("All arguments must be of class 'Model'")
+    }
   }
   
-  # modify the call object to dispatch on mod1
-  mod2_call <- attr(mod2, "call")
+  updated_models <- list()
   
-  # replace with the generic name
-  class_names <- as.character(mod2_call[[1]]) |> strsplit("\\.") |> unlist()
-
-  mod21 <- do.call(what = class_names[1],
-                   args = c(model = list(mod1), mod2, list(...)))
+  for (i in seq_along(modelchain)) {
+    current_model <- modelchain[[i]]
+    
+    if (i > 1) {
+      # Retrieve the call object from the current model
+      mod2_call <- attr(current_model, "call")
+      
+      # Extract the generic constructor name from the call
+      # For example, if mod2_call[[1]] is "MarkovModel.DecisionTree", this splits it
+      class_names <- strsplit(as.character(mod2_call[[1]]), "\\.")[[1]]
+      constructor <- class_names[1]  # Use the generic part, e.g. "MarkovModel" or "DecisionTree"
+      
+      # Update the current model by calling its generic constructor
+      # Here we assume the constructor accepts an argument named "model" (the previous result)
+      # plus the current model object itself
+      current_model <- do.call(constructor,
+                               args = c(model = list(updated_models[[i - 1]]),
+                                        current_model,
+                                        list(...)))
+    }
+    
+    updated_models[[i]] <- current_model
+  }
   
-  structure(list(mod1, mod21), class = "CombinedModel")
+  structure(updated_models, class = "CombinedModel")
 }
 
 # infix version
@@ -166,7 +197,7 @@ get_costs.MarkovModel <- function(results) {
 
 #
 get_costs.CombinedModel <- function(results) {
-
+  
   total_cost <- 0
   for (i in seq_along(results)) {
     total_cost <- total_cost + get_costs(results[[i]])
@@ -178,18 +209,20 @@ get_costs.CombinedModel <- function(results) {
 # to Markov model starting states
 #
 map_terminal_to_markov <- function(probs, mapping) {
-
+  
   indices <- sort(unique(mapping))
   
   # sum probabilities by group
   sapply(indices, \(x) sum(probs[x]))
 }
 
-##############################
-# example
+############
+# examples
+############
 
 dt <- DecisionTree(decision_tree)
 
+# a 3d array from-to by treatment
 trans_prob_mat <- 
   array(c(0.9, 0.1, 0.2, 0.8,
           0.9, 0.1, 0.2, 0.8),
@@ -197,15 +230,13 @@ trans_prob_mat <-
         dimnames = list(NULL, NULL, c("A", "B")))
 
 cost_mat <- 
-  array(c(1000, 2000, 800, 2500,
-          1000, 2000, 800, 2500),
-        dim = c(2,2,2),
+  array(c(1000, 2000),
+        dim = c(1,2,2),
         dimnames = list(NULL, NULL, c("A", "B")))
 
 q_mat <- 
-  array(c(1, 0, 1, 0,
-          1, 0, 1, 0),
-        dim = c(2,2,2),
+  array(c(1, 0),
+        dim = c(1,2,2),
         dimnames = list(NULL, NULL, c("A", "B")))
 
 # mapping from decision tree terminal nodes to Markov states
@@ -213,10 +244,11 @@ mapping <- c(1, 2, 2, 1)
 
 # can either chain the models so include dt as first argument
 mm0 <- dt |>
-       MarkovModel(trans_matrix = trans_prob_mat,
-                   cost_matrix = cost_mat, q_matrix = q_mat,
-                   mapping = mapping)
+  MarkovModel(trans_matrix = trans_prob_mat,
+              cost_matrix = cost_mat, q_matrix = q_mat,
+              mapping = mapping)
 
+#############TODO:
 # or create independently and link within CombinedModel()
 mm <- MarkovModel(trans_matrix = trans_prob_mat,
                   cost_matrix = cost_mat, q_matrix = q_mat)
@@ -232,3 +264,12 @@ sim_res <- run_model(full_model)
 
 ##TODO: need additional mapping argument
 # full_model <- dt %->% mm
+
+###################
+# from Markov model to decision tree
+
+
+
+##TODO:
+# chain several models
+
