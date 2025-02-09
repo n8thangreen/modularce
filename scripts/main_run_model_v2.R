@@ -58,17 +58,17 @@ map_markov_to_decision <- function(markov_result) {
 # runners
 
 run_model.CombinedModel <- function(model_chain) {
-  result <- NULL
+  result <- list()
   
   for (i in seq_along(model_chain)) {
     current_model <- model_chain[[i]]
     
     if (i > 1) {
       # Update model via S3 dispatch
-      current_model <- update_model(current_model, result)
+      current_model <- update_model(current_model, result[[i - 1]])
     }
     
-    result <- run_model(current_model)
+    result[[i]] <- run_model(current_model)
   }
   
   result
