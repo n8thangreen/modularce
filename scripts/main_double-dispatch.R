@@ -43,21 +43,6 @@ MarkovModel.default <- function(model = NA,
             class = c("MarkovModel", "Model"))
 }
 
-# A decorator for constructing a MarkovModel from a DecisionTree
-MarkovModel.DecisionTree <- function(model, mapping, ...) {
-  init_probs <- map_terminal_to_markov(model$data$probability, mapping)
-  NextMethod(generic = MarkovModel,
-             object = model,
-             init_probs = init_probs, ...)
-}
-
-# (Optional) If you need to convert a Markov model result back to a DecisionTree,
-# you could implement DecisionTree.MarkovModel similarly.
-DecisionTree.MarkovModel <- function(data, ...) {
-  NextMethod(generic = DecisionTree,
-             object = data, ...)
-}
-
 ###############################
 # 2. Define the CombinedModel and infix operator for chaining
 ###############################
