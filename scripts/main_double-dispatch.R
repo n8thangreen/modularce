@@ -10,24 +10,14 @@ library(dplyr)
 # 1. Define the DecisionTree and MarkovModel classes
 ###############################
 
-# DecisionTree constructors and methods
 DecisionTree <- function(data, ...) {
-  UseMethod("DecisionTree")
-}
-
-DecisionTree.default <- function(data, ...) {
   call_obj <- match.call()
   structure(list(data = data),
             call = call_obj,
             class = c("DecisionTree", "Model"))
 }
 
-# MarkovModel constructors and methods
-MarkovModel <- function(model, ...) {
-  UseMethod("MarkovModel")
-}
-
-MarkovModel.default <- function(model = NA,
+MarkovModel <- function(model = NA,
                                 init_probs = NA,
                                 trans_matrix = NA,
                                 cost_matrix = NA,
@@ -56,21 +46,6 @@ CombinedModel <- function(...) {
     stop("All arguments must be of class 'Model'")
   }
   structure(models, class = "CombinedModel")
-}
-
-# Infix operator for chaining (optional)
-`%->%` <- function(mod1, mod2) {
-  UseMethod("%->%")
-}
-`%->%.default` <- function(mod1, mod2) {
-  if (!inherits(mod2, "Model")) {
-    stop("All arguments must be of class 'Model'")
-  } else {
-    stop("No method for this model")
-  }
-}
-`%->%.Model` <- function(mod1, mod2) {
-  CombinedModel(mod1, mod2)
 }
 
 ###############################
@@ -112,8 +87,8 @@ run_model.MarkovModel <- function(model) {
             class = c("MarkovModelOutput", "output", class(model)))
 }
 
-# Run a CombinedModel: update each model in the chain (using update_model())
-# and store each model's output in a list.
+# update each model in the chain (using update_model())
+# and store each model's output in a list
 run_model.CombinedModel <- function(model_chain) {
   results <- list()
   
@@ -122,14 +97,14 @@ run_model.CombinedModel <- function(model_chain) {
     
     if (i > 1) {
       # Update current_model based on the output of the previous model
-      # The update_model() S3 function inspects the previous result’s class
+      # S3 function inspects the previous result’s class
       current_model <- update_model(current_model, results[[i - 1]])
     }
     
     results[[i]] <- run_model(current_model)
   }
   
-  structure(results, class = c("CombinedModelOutput", "output"))
+  structure(results, class = c("CombinedModelOutput", class(results)))
 }
 
 ###############################
