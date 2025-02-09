@@ -225,34 +225,32 @@ map_markov_to_decision <- function(markov_result) {
 # define the update_model S3 functions
 # a kind of double dispatch approach
 
-update_model <- function(model, previous) {
+update_model <- function(target, previous) {
   UseMethod("update_model")
 }
 
-update_model.DecisionTree <- function(model, previous) {
-  update_decisiontree(previous)
+update_model.DecisionTree <- function(target, previous) {
+  UseMethod("update_model.DecisionTree", previous)
 }
 
-update_model.MarkovModel <- function(model, previous) {
-  update_markovmodel(previous)
+update_model.MarkovModel <- function(target, previous) {
+  UseMethod("update_model.MarkovModel", previous)
+}
+         
+update_model.DecisionTree.MarkovModel <- function(target, previous) {
+  target$data <- map_decision_to_markov(target, target$mapping)
+  target
 }
 
-update_model.default <- function(model, previous) {
+update_model.MarkovModel.DecisionTree <- function(target, previous) {
+  target$data <- map_decision_to_markov(target, target$mapping)
+  target
+}
+
+update_model.default <- function(target, previous) {
   warning("No update method for this model type; returning model unchanged.")
-  model
+  target
 }
-
-###
-
-update_markovmodel <- function(model) {
-  UseMethod("update_markovmodel")
-}
-
-update_markovmodel.DecisionTree <- function(model) {
-  model$data <- map_decision_to_markov(model, model$mapping)
-  model
-}
-
 
 ###############################
 # Example 
