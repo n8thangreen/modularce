@@ -25,13 +25,16 @@ MarkovModel <- function(model, ...) {
   UseMethod("MarkovModel")
 }
 
-# first argument?
-MarkovModel.default <- function(model = NA,
-                                init_probs = NA,
-                                trans_matrix = NA,
-                                cost_matrix = NA,
-                                q_matrix = NA,
-                                n_cycles = 10, ...) {
+MarkovModel.default <- function(model = NA, ...) {
+  stop("No method for this model")
+}
+
+MarkovModel.Model <- function(model = NA,
+                              init_probs = NA,
+                              trans_matrix = NA,
+                              cost_matrix = NA,
+                              q_matrix = NA,
+                              n_cycles = 10, ...) {
   call_obj <- match.call()
   extra_args <- list(...)
   
@@ -83,14 +86,14 @@ CombinedModel <- function(mod1, mod2, ...) {
 }
 
 `%->%.default` <- function(mod1, mod2) {
-  if (!inherits(mod2, "Model")) {
-    stop("All arguments must be of class 'Model'")
-  } else {
-    stop("No method for this model")
-  }
+  stop("No method for this model")
 }
 
 `%->%.Model` <- function(mod1, mod2) {
+  if (!inherits(mod2, "Model")) {
+    stop("All arguments must be of class 'Model'")
+  }
+  
   # modify the call object to dispatch on mod1
   mod2_call <- attr(mod2, "call")
   mod2_call$model <- mod1
