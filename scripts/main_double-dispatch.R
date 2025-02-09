@@ -198,7 +198,7 @@ update_model.MarkovModel <- function(target, previous) {
 }
          
 update_model.DecisionTree.MarkovModel <- function(target, previous) {
-  target$data <- map_decision_to_markov(target, target$mapping)
+  target$data <- map_markov_to_decision(target, target$mapping)
   target
 }
 
