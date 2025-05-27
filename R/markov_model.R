@@ -6,8 +6,7 @@ markov_model <- function(start_pop,
                          p_matrix,
                          state_c_matrix,
                          state_q_matrix,
-                         n_cycles = 46,
-                         init_age = 55,
+                         n_cycles = 2,
                          s_names = NULL,
                          t_names = NULL) {
   
@@ -38,39 +37,26 @@ markov_model <- function(start_pop,
   total_QALYs <- setNames(rep(NA, n_treat), t_names)
   
   for (i in 1:n_treat) {
-    
-    age <- init_age
-    
     for (j in 2:n_cycles) {
-      
-      # difference from point estimate case
-      # pass in functions for random sample
-      # rather than fixed values
-      p_matrix <- p_matrix_cycle(p_matrix, age, j - 1,
-                                 tpProg = tpProg(),
-                                 tpDcm = tpDcm(),
-                                 effect = effect())
       
       # Matrix multiplication
       pop[, cycle = j, treatment = i] <-
         pop[, cycle = j - 1, treatment = i] %*% p_matrix[, , treatment = i]
-      
-      age <- age + 1
     }
     
     cycle_costs[i, ] <-
-      (state_c_matrix[treatment = i, ] %*% pop[, , treatment = i]) * 1/(1 + cDr)^(1:n_cycles - 1)
+      (state_c_matrix[, , treatment = i] %*% pop[, , treatment = i]) * 1/(1 + 0.035)^(1:n_cycles - 1)
     
     cycle_QALE[i, ] <-
-      state_q_matrix[treatment = i, ] %*%  pop[, , treatment = i]
+      state_q_matrix[, , treatment = i] %*%  pop[, , treatment = i]
     
-    cycle_QALYs[i, ] <- cycle_QALE[i, ] * 1/(1 + oDr)^(1:n_cycles - 1)
+    cycle_QALYs[i, ] <- cycle_QALE[i, ] * 1/(1 + 0.035)^(1:n_cycles - 1)
     
     total_costs[i] <- sum(cycle_costs[treatment = i, -1])
     total_QALYs[i] <- sum(cycle_QALYs[treatment = i, -1])
   }
   
-  list(pop = pop,
+  list(state = pop[, n_cycles, ],
        total_costs = total_costs,
        total_QALYs = total_QALYs)
 }
