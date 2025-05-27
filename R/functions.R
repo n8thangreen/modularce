@@ -147,28 +147,99 @@ run_model <- function(model, ...) {
   UseMethod("run_model")
 }
 
+# ai generated
+calculate_pathways <- function(tree_data) {
+  
+  # Get unique treatments
+  treatments <- unique(tree_data$treatment)
+  
+  all_path_results <- list()
+  
+  for (trt in treatments) {
+    # Filter tree for the current treatment
+    current_tree <- tree_data %>% filter(treatment == trt)
+    
+    # Initialize paths with root nodes
+    # Each path will be a list containing:
+    # - current_node: the last node reached
+    # - path_nodes: vector of nodes in the path
+    # - path_prob: cumulative probability along the path
+    # - path_cost: cumulative cost along the path
+    # - path_eff: cumulative effect along the path
+    paths <- list(
+      list(
+        current_node = "root",
+        path_nodes = "root",
+        path_prob = 1, # Probability of starting at root is 1
+        path_cost = 0,
+        path_eff = 0
+      )
+    )
+    
+    completed_paths <- list()
+    
+    # Iteratively expand paths until no more transitions are possible
+    while (length(paths) > 0) {
+      current_path <- paths[[1]]
+      paths <- paths[-1] # Remove the current path from the list to process
+      
+      from_node <- current_path$current_node
+      
+      # Find all transitions originating from the current node
+      transitions <- current_tree %>% filter(from == from_node)
+      
+      if (nrow(transitions) == 0) {
+        # No more transitions from this node, so this path is complete
+        completed_paths <- append(completed_paths, list(current_path))
+      } else {
+        # Expand current path with each possible transition
+        for (i in 1:nrow(transitions)) {
+          transition <- transitions[i, ]
+          new_path <- list(
+            current_node = transition$to,
+            path_nodes = c(current_path$path_nodes, transition$to),
+            path_prob = current_path$path_prob * transition$prob,
+            path_cost = current_path$path_cost + transition$cost,
+            path_eff = current_path$path_eff + transition$eff
+          )
+          paths <- append(paths, list(new_path))
+        }
+      }
+    }
+    
+    # Convert completed paths to a tibble for the current treatment
+    path_df <- completed_paths %>%
+      purrr::map_df(~tibble(
+        treatment = trt,
+        path_nodes = paste(.x$path_nodes, collapse = " -> "),
+        path_prob = .x$path_prob,
+        path_cost = .x$path_cost,
+        path_eff = .x$path_eff
+      ))
+    
+    all_path_results[[trt]] <- path_df
+  }
+  
+  return(bind_rows(all_path_results))
+}
+
+
 #' @import dplyr
 #' @export
 run_model.DecisionTree <- function(model) {
+  
+  path_results <- calculate_pathways(model)
+  
   res <- 
-    model$data %>%
-    group_by(decision) %>%
+    path_results %>%
+    group_by(treatment) %>%
     summarise(
-      expected_cost = sum(probability * cost),
-      expected_eff = sum(probability * effectiveness)
+      expected_cost_overall = sum(path_prob * path_cost),
+      expected_eff_overall = sum(path_prob * path_eff)
     )
   
-  terminal_prob <- split(x = model$data$probability,
-                         f = model$data$decision)
-    
-  if (!is.na(model$N)) {
-    res$expected_cost <- res$expected_cost * model$N 
-    res$expected_eff <- res$expected_eff * model$N
-  }
-  
-  structure(c(
+  structure(
     res,
-    terminal_prob = list(terminal_prob)),
     class = c("output", class(model)))
 }
 
