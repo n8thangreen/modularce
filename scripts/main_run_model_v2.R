@@ -13,7 +13,7 @@ library(dplyr)
 ## define model data
 
 decision_tree <- tribble(
-  ~treatment,    ~from,   ~to,     ~prob, ~cost, ~eff,
+  ~treatment,    ~from,   ~to,       ~prob, ~cost, ~eff,
   "Treatment A", "root",  "healthy", 0.7,   100,   0.8,
   "Treatment A", "root",  "sick",    0.3,   150,   0.75,
   "Treatment A", "healthy", "pos",   0.9,   50,    0.95,

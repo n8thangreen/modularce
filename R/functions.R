@@ -83,7 +83,7 @@ update_model.MarkovModel <- function(model, result) {
 # Decision tree
 #' @export
 update_model.DecisionTree <- function(model, result) {
-  model$data <- map_markov_to_decision(result)
+  model$data <- map_markov_to_decision(model, result)
   model
 }
 
@@ -108,14 +108,14 @@ map_decision_to_markov <- function(decision_result, mapping) {
 
 # from Markov model to decision tree
 #' @export
-map_markov_to_decision <- function(markov_result) {
-  tibble(
-    decision = c("Treatment A", "Treatment B"),
-    outcome = c("Success", "Failure"),
-    probability = c(0.6, 0.4),
-    cost = c(900, 2100),      
-    effectiveness = c(0.88, 0.45)
-  )
+map_markov_to_decision <- function(dt_model, markov_result) {
+  mm_probs <- markov_results$terminal_probs
+  
+  ##TODO: ensure correct order
+  dt_model$data |> 
+    mutate(to = ifelse(from = "root",
+                       yes = mm_probs,
+                       no = prob))
 }
 
 ##########
@@ -274,6 +274,7 @@ run_model.MarkovModel <- function(model) {
 # 
 #   # transform
 #   res$decision <- names(out$total_costs)
+#   res$terminal_prob <- out$pop
 #   res$expected_cost <- out$total_costs
 #   res$expected_eff <- out$total_QALYS
 #   
