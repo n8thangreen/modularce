@@ -1,5 +1,6 @@
-# main script
-#
+# main script v1
+# seems a little too complicated for a tutorial paper
+# so have refactor as v2
 
 library(tibble)
 library(dplyr)

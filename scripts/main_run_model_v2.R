@@ -2,158 +2,74 @@
 # update models inside of run_model()
 #
 
-CombinedModel <- function(...) {
-  models <- list(...)
-  
-  if (length(models) < 2) {
-    stop("At least two models must be provided.")
-  }
-  
-  if (!all(sapply(models, function(m) inherits(m, "Model")))) {
-    stop("All arguments must be of class 'Model'")
-  }
-  
-  structure(models, class = "CombinedModel")
-}
+library(tibble)
+library(dplyr)
 
-
-update_model <- function(model, result) {
-  UseMethod("update_model")
-}
-
-update_model.MarkovModel <- function(model, result) {
-  model$init_probs <- map_decision_to_markov(result, model$mapping)
-  model
-}
-
-update_model.DecisionTree <- function(model, result) {
-  model$data <- map_markov_to_decision(result)
-  model
-}
-
-update_model.default <- function(model, result) {
-  warning("No update method defined for this model type. Returning model unmodified.")
-  model
-}
-
-## mappings
-
-map_decision_to_markov <- function(decision_result, mapping) {
-  probs <- decision_result$expected_cost
-  indices <- sort(unique(mapping))
-  sapply(indices, function(x) sum(probs[which(mapping == x)]))
-}
-
-map_markov_to_decision <- function(markov_result) {
-  tibble(
-    decision = c("Treatment A", "Treatment B"),
-    outcome = c("Success", "Failure"),
-    probability = c(0.6, 0.4),
-    cost = c(900, 2100),      
-    effectiveness = c(0.88, 0.45)
-  )
-}
 
 ##########
-# runners
-
-run_model.CombinedModel <- function(model_chain) {
-  result <- list()
-  
-  for (i in seq_along(model_chain)) {
-    current_model <- model_chain[[i]]
-    
-    if (i > 1) {
-      # Update model via S3 dispatch
-      current_model <- update_model(current_model, result[[i - 1]])
-    }
-    
-    result[[i]] <- run_model(current_model)
-  }
-  
-  result
-}
-
-run_model <- function(model, ...) {
-  UseMethod("run_model")
-}
-
-run_model.DecisionTree <- function(model) {
-  res <- 
-    model$data %>%
-    group_by(decision) %>%
-    summarise(
-      expected_cost = sum(probability * cost),
-      expected_effectiveness = sum(probability * effectiveness)
-    )
-  
-  structure(res,
-            class = c("output", class(model)))
-}
-
-run_model.MarkovModel <- function(model) {
-  
-  init_probs <- model$init_probs
-  
-  res <- data.frame(
-    decision = c("Treatment A", "Treatment B"),
-    expected_cost = c(100, 100),
-    expected_effectiveness = c(1,1))
-  
-  structure(res,
-            class = c("output", class(model)))
-}
-
-analysis <- function(results, ...) {
-  c(get_costs(results),
-    get_effects(results))
-}
-
+# EXAMPLE 
 ##########
-# helpers
 
-get_costs <- function(results, ...) {
-  UseMethod("get_costs")
-}
+## define model data
 
-#
-get_costs.default <- function(results) {
-  stop("No method for this model")
-}
+decision_tree <- tibble(
+  decision = rep(c("Treatment A", "Treatment B"), each = 2),
+  outcome = c("Success", "Failure",
+              "Success", "Failure"),
+  probability = c(0.7, 0.3, 0.6, 0.4),
+  cost = c(1000, 2000, 800, 2500),
+  effectiveness = c(0.9, 0.5, 0.85, 0.4))
 
-#
-get_costs.DecisionTree <- function(results) {
-  results$expected_cost
-}
+decision_tree
 
-#
-get_costs.MarkovModel <- function(results) {
-  results$expected_cost
-}
+# # A tibble: 4 × 5
+#   decision    outcome probability  cost effectiveness
+#   <chr>       <chr>         <dbl> <dbl>         <dbl>
+# 1 Treatment A Success         0.7  1000          0.9 
+# 2 Treatment A Failure         0.2  2000          0.5 
+# 3 Treatment B Success         0.6   800          0.85
+# 4 Treatment B Failure         0.3  2500          0.4 
 
-#
-get_costs.CombinedModel <- function(results) {
-  
-  total_cost <- 0
-  for (i in seq_along(results)) {
-    total_cost <- total_cost + get_costs(results[[i]])
-  }
-  total_cost
-}
+# Define dummy Markov model parameters (using a 3D array for transition probabilities)
+trans_prob_mat <- array(c(0.9, 0.1, 0.2, 0.8,
+                          0.9, 0.1, 0.2, 0.8),
+                        dim = c(2, 2, 2),
+                        dimnames = list(NULL, NULL, c("A", "B")))
 
-###############
-# EXAMPLE USAGE
-###############
+cost_mat <- array(c(1000, 2000),
+                  dim = c(1, 2, 2),
+                  dimnames = list(NULL, NULL, c("A", "B")))
+
+q_mat <- array(c(1, 0),
+               dim = c(1, 2, 2),
+               dimnames = list(NULL, NULL, c("A", "B")))
+
+# Mapping from decision tree terminal nodes to Markov states
+# same for all treatments
+mapping <- c(1, 2)
+
+
+## build models
 
 dt <- DecisionTree(decision_tree)
+dt_N <- DecisionTree(decision_tree, N = 100)
 
 mm <- MarkovModel(trans_matrix = trans_prob_mat,
-                  cost_matrix = cost_mat, q_matrix = q_mat,
+                  cost_matrix = cost_mat,
+                  q_matrix = q_mat,
                   mapping = mapping)
 
 dt2 <- DecisionTree(decision_tree)
 
-full_model <- CombinedModel(dt, mm, dt2)
+
+## run models
+
+run_model(dt)
+run_model(mm)
+
+full_model <- CombinedModel(dt, mm)
 
 final_result <- run_model(full_model)
 
+# could use BCEA package for this
+# cea_res <- analysis(final_result)
