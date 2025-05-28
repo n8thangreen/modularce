@@ -1,4 +1,4 @@
-# functions
+# main modelling functions
 
 ##############
 # models
@@ -98,8 +98,8 @@ update_model.default <- function(model, result) {
 
 # how does the output of one model plug into the input of the next model? 
 
-# from decision tree to Markov model
-#' @return a list of vectors of probabilities by treatment
+#' states from decision tree to Markov model
+#' @return dataframe of probabilities by treatment
 #' @export
 map_decision_to_markov <- function(decision_result, mapping) {
   decision_result$path_results |>
@@ -108,7 +108,7 @@ map_decision_to_markov <- function(decision_result, mapping) {
     summarise(p = sum(terminal_prob))
 }
 
-# from Markov model to decision tree
+#' states from Markov model to decision tree
 #' @export
 map_markov_to_decision <- function(dt_model, markov_result) {
 
@@ -121,7 +121,7 @@ map_markov_to_decision <- function(dt_model, markov_result) {
 ##########
 # runners
 
-# loop through each sequential submodel
+#' loop through each sequential submodel
 #' @export
 run_model.CombinedModel <- function(model_chain) {
   result <- list()
@@ -141,7 +141,7 @@ run_model.CombinedModel <- function(model_chain) {
             class = c("output", class(model_chain)))
 }
 
-# run a submodel
+#' run a submodel
 #' @export
 run_model <- function(model, ...) {
   UseMethod("run_model")
@@ -216,7 +216,7 @@ run_model.MarkovModel <- function(model) {
             class = c("output", class(model)))
 }
 
-# take the output of a model run and
+#' take the output of a model run and
 # return cost effectiveness values
 #' @export
 analysis <- function(results, ...) {
