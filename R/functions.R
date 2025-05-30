@@ -128,8 +128,9 @@ run_model.CombinedModel <- function(model_chain) {
   
   # unnest list of combined models
   model_depth <- purrr::vec_depth(model_chain)
-  if (model_depth > 2) {
+  while (model_depth > 2) {
     model_chain <- unlist(model_chain, recursive = FALSE)
+    model_depth <- purrr::vec_depth(model_chain)
   }
   
   result <- list()
