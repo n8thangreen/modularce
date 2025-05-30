@@ -51,7 +51,7 @@ MarkovModel.default <- function(model = NA,
 ###############
 # constructors
 
-# Combine all models in to a single list
+#' Combine all submodels in to a single list
 #' @export
 CombinedModel <- function(...) {
   models <- list(...)
@@ -67,20 +67,20 @@ CombinedModel <- function(...) {
   structure(models, class = "CombinedModel")
 }
 
-# provide additional components needed for each model
+#' Provide additional components needed for each model
 #' @export
 update_model <- function(model, result) {
   UseMethod("update_model")
 }
 
-# Markov model
+#' Markov model
 #' @export
 update_model.MarkovModel <- function(model, result) {
   model$init_probs <- map_decision_to_markov(result, model$mapping)
   model
 }
 
-# Decision tree
+#' Decision tree
 #' @export
 update_model.DecisionTree <- function(model, result) {
   model$data <- map_markov_to_decision(model, result)
@@ -98,7 +98,7 @@ update_model.default <- function(model, result) {
 
 # how does the output of one model plug into the input of the next model? 
 
-#' states from decision tree to Markov model
+#' States from decision tree to Markov model
 #' @return dataframe of probabilities by treatment
 #' @export
 map_decision_to_markov <- function(decision_result, mapping) {
@@ -108,7 +108,7 @@ map_decision_to_markov <- function(decision_result, mapping) {
     summarise(p = sum(terminal_prob))
 }
 
-#' states from Markov model to decision tree
+#' States from Markov model to decision tree
 #' @export
 map_markov_to_decision <- function(dt_model, markov_result) {
 
@@ -121,9 +121,17 @@ map_markov_to_decision <- function(dt_model, markov_result) {
 ##########
 # runners
 
-#' loop through each sequential submodel
+#' Loop through each sequential submodel
+#' @param model_chain list (possibly nested) of submodels
 #' @export
 run_model.CombinedModel <- function(model_chain) {
+  
+  # unnest list of combined models
+  model_depth <- purrr::vec_depth(model_chain)
+  if (model_depth > 2) {
+    model_chain <- unlist(model_chain, recursive = FALSE)
+  }
+  
   result <- list()
   
   for (i in seq_along(model_chain)) {
@@ -141,7 +149,7 @@ run_model.CombinedModel <- function(model_chain) {
             class = c("output", class(model_chain)))
 }
 
-#' run a submodel
+#' Run a submodel
 #' @export
 run_model <- function(model, ...) {
   UseMethod("run_model")
@@ -188,7 +196,7 @@ run_model.DecisionTree <- function(model) {
 #'             class = c("output", class(model)))
 #' }
 
-#' wrapper for adapter function
+#' Wrapper for adapter function
 #' @export
 run_model.MarkovModel <- function(model) {
 
@@ -216,8 +224,11 @@ run_model.MarkovModel <- function(model) {
             class = c("output", class(model)))
 }
 
-#' take the output of a model run and
-# return cost effectiveness values
+#' Model analysis
+#' 
+#' Take the output of a model run and
+#' return cost effectiveness values
+#' 
 #' @export
 analysis <- function(results, ...) {
   c(get_costs(results),
