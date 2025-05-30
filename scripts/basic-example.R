@@ -6,7 +6,6 @@
 library(tibble)
 library(dplyr)
 
-
 ##########
 # EXAMPLE 
 ##########
@@ -30,7 +29,8 @@ decision_tree <- tribble(
   "B", "sick",  "FN",     0.15,  110,   0.72,
 )
 
-# Define dummy Markov model parameters (using a 3D array for transition probabilities)
+# Define dummy Markov model
+# parameters (using a 3D array for transition probabilities)
 trans_prob_mat <- array(c(0.9, 0.2, 0.1, 0.8,
                           0.9, 0.2, 0.1, 0.8),
                         dim = c(2, 2, 2),
@@ -79,6 +79,9 @@ final_result <- run_model(full_model)
 full_model2 <- CombinedModel(mm0, dt)
 final_result2 <- run_model(full_model2)
 
+# 3 steps
+full_model <- CombinedModel(dt, mm, dt)
+final_result <- run_model(full_model)
 
 
 
