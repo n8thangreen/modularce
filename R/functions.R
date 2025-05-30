@@ -127,14 +127,10 @@ map_markov_to_decision <- function(dt_model, markov_result) {
 run_model.CombinedModel <- function(model_chain) {
   
   # unnest list of combined models
-<<<<<<< HEAD
   model_depth <- purrr::vec_depth(model_chain)
   if (model_depth > 2) {
     model_chain <- unlist(model_chain, recursive = FALSE)
   }
-=======
-  model_chain <- unlist(model_chain, recursive = FALSE)
->>>>>>> 3ad50c4d2010165e143c90d8c6d9b59b7924e163
   
   result <- list()
   
