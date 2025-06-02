@@ -141,6 +141,13 @@ p_init <- array(c(1, 0, 0, 0, 0, 0),
 
 dt <- DecisionTree(decision_tree)
 
+mm2 <- MarkovModel(trans_matrix = trans_prob_mat,
+                   cost_matrix = cost_mat,
+                   q_matrix = q_mat,
+                   init_probs = p_init,
+                   mapping = mapping,
+                   n_cycles = 2)
+
 mm5 <- MarkovModel(trans_matrix = trans_prob_mat,
                    cost_matrix = cost_mat,
                    q_matrix = q_mat,
@@ -160,15 +167,23 @@ mm10 <- MarkovModel(trans_matrix = trans_prob_mat,
 # single
 run_model(dt)
 res5 <- run_model(mm5)
-res10 <- run_model(mm5)
+res10 <- run_model(mm10)
+
+pair_model2 <- CombinedModel(dt, mm2)
+pair_result2 <- run_model(pair_model2)
 
 pair_model5 <- CombinedModel(dt, mm5)
 pair_result5 <- run_model(pair_model5)
 
 pair_model10 <- CombinedModel(dt, mm10)
+pair_model10 <- CombinedModel(dt, mm10)
 
 nested_model5 <- CombinedModel(pair_model5, pair_model5)
 results5 <- run_model(nested_model5)
+
+screening_submodels2 <- rep(pair_model2, 10)
+screening_model2 <- do.call(CombinedModel, args = screening_submodels2)
+screening_results2 <- run_model(screening_model2)
 
 screening_submodels5 <- rep(pair_model5, 4)
 screening_model5 <- do.call(CombinedModel, args = screening_submodels5)
