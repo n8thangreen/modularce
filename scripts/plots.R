@@ -75,3 +75,17 @@ plot5 <-
 ggsave(plot2, filename = "plots/occupancy_plot_2y_screening.png", bg = "white")
 ggsave(plot5, filename = "plots/occupancy_plot_5y_screening.png", bg = "white")
 ggsave(plot10, filename = "plots/occupancy_plot_10y_screening.png", bg = "white")
+
+
+#################
+
+x <- 
+  rbind(analysis(screening_results2),
+      analysis(screening_results5),
+      analysis(screening_results10))
+
+plot(NULL,
+     xlab = "health", ylab = "cost",
+     ylim = c(0, 800), xlim = c(0,10), )
+
+text(x = x[,2], y = x[,1], labels = c("2", "5", "10"))
