@@ -10,7 +10,7 @@ markov_model <- function(start_pop,
                          s_names = NULL,
                          t_names = NULL) {
   
-  n_states <- length(start_pop)
+  n_states <- ncol(p_matrix)
   n_treat <- dim(p_matrix)[3]
   
   pop <- array(data = NA,
@@ -19,8 +19,8 @@ markov_model <- function(start_pop,
                                cycle = NULL,
                                treatment = t_names))
   
-  for (i in 1:n_states) {
-    pop[i, cycle = 1, ] <- start_pop[i]
+  for (i in 1:n_treat) {
+    pop[, cycle = 1, i] <- unlist(start_pop[1, , i])
   }
   
   cycle_empty_array <-

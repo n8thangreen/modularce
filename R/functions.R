@@ -102,10 +102,24 @@ update_model.default <- function(model, result) {
 #' @return dataframe of probabilities by treatment
 #' @export
 map_decision_to_markov <- function(decision_result, mapping) {
-  decision_result$path_results |>
+  df <- 
+    decision_result$path_results |>
     mutate(state = mapping[terminal_node]) |> 
-    group_by(state) |> 
+    group_by(treatment, state) |> 
     summarise(p = sum(terminal_prob))
+  
+  # rearrange to 3D format
+  wide_df <- 
+    tidyr::pivot_wider(
+      df, names_from = state,
+      values_from = p) |> 
+    ungroup() 
+  
+  res <- 
+    wide_df |> 
+    select(-treatment) |> 
+    split(wide_df$treatment) |> 
+    simplify2array()
 }
 
 #' States from Markov model to decision tree
@@ -122,15 +136,20 @@ map_markov_to_decision <- function(dt_model, markov_result) {
 # runners
 
 #' Loop through each sequential submodel
+#'
 #' @param model_chain list (possibly nested) of submodels
 #' @export
 run_model.CombinedModel <- function(model_chain) {
   
   # unnest list of combined models
-  model_depth <- purrr::vec_depth(model_chain)
-  while (model_depth > 2) {
+  # Continue unlisting as long as there are non-Model list elements
+  # only works for all same nesting levels
+  not_model_list <- function(x) {
+    any(sapply(x, function(y) is.list(y) && !inherits(y, "Model")))
+  }
+  
+  while (not_model_list(model_chain)) {
     model_chain <- unlist(model_chain, recursive = FALSE)
-    model_depth <- purrr::vec_depth(model_chain)
   }
   
   result <- list()
@@ -201,14 +220,14 @@ run_model.DecisionTree <- function(model) {
 #' @export
 run_model.MarkovModel <- function(model) {
 
-  out <- markov_model(start_pop = model$init_probs$p,
+  out <- markov_model(start_pop = model$init_probs,
                       p_matrix = model$trans_matrix,
                       state_c_matrix = model$cost_matrix,
                       state_q_matrix = model$q_matrix,
                       n_cycles = model$n_cycles)
   
-  node_names <- model$init_probs$state
-  tx_names <- names(model$trans_matrix[1,1,])
+  node_names <- names(model$init_probs[, , 1])
+  tx_names <- names(model$trans_matrix[1, 1, ])
   
   # harmonise 
   res <- list()
