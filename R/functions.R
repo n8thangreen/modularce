@@ -60,7 +60,7 @@ CombinedModel <- function(...) {
     stop("At least two models must be provided.")
   }
   
-  if (!all(sapply(models, function(m) inherits(m, "Model")))) {
+  if (!all(sapply(models, function(m) inherits(m, c("CombinedModel", "Model"))))) {
     stop("All arguments must be of class 'Model'")
   }
   
@@ -227,15 +227,17 @@ run_model.MarkovModel <- function(model) {
                       n_cycles = model$n_cycles)
   
   node_names <- names(model$init_probs[, , 1])
-  tx_names <- names(model$trans_matrix[1, 1, ])
+  tx_names <- dimnames(model$trans_matrix)[[3]]
   
   # harmonise 
   res <- list()
-  res$terminal <- out$state
+  res$terminal <- out$final_state
   res$expected_cost <- out$total_costs
-  res$expected_eff <- out$total_QALYS
+  res$expected_eff <- out$total_QALYs
+  res$pop <- out$pop
   
-  ##TODO: too hacky!
+  ##TODO: hacky
+  # convert to long dataframe
   dimnames(res$terminal) <- list(node_names, tx_names)
   res$terminal <- reshape2::melt(res$terminal)
   colnames(res$terminal) <- c("state", "treatment", "probs")

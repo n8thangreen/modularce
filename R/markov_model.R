@@ -56,7 +56,13 @@ markov_model <- function(start_pop,
     total_QALYs[i] <- sum(cycle_QALYs[treatment = i, -1])
   }
   
-  list(state = pop[, n_cycles, ],
+  final_pop <- pop[, n_cycles, , drop = FALSE]
+  
+  list_of_slices <- lapply(1:dim(final_pop)[3], function(i) final_pop[, , i])
+  final_pop_mat <- do.call(cbind, list_of_slices)
+  
+  list(final_state = final_pop_mat,
+       pop = pop[, , , drop = FALSE],
        total_costs = total_costs,
        total_QALYs = total_QALYs)
 }
