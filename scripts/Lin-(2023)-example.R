@@ -178,8 +178,9 @@ pair_result5 <- run_model(pair_model5)
 pair_model10 <- CombinedModel(dt, mm10)
 pair_model10 <- CombinedModel(dt, mm10)
 
-nested_model5 <- CombinedModel(pair_model5, pair_model5)
-results5 <- run_model(nested_model5)
+results5 <-
+  CombinedModel(pair_model5, pair_model5) |> 
+  run_model()
 
 screening_submodels2 <- rep(pair_model2, 10)
 screening_model2 <- do.call(CombinedModel, args = screening_submodels2)
@@ -192,4 +193,48 @@ screening_results5 <- run_model(screening_model5)
 screening_submodels10 <- rep(pair_model10, 2)
 screening_model10 <- do.call(CombinedModel, args = screening_submodels10)
 screening_results10 <- run_model(screening_model10)
+
+
+#########################
+# loop through scenarios
+
+t_between_screens <- c(2, 5, 10, 15, 20)
+num_screens <- c(1, 2, 3, 4, 5, 10)
+
+all_results <- list()
+
+dt <- DecisionTree(decision_tree)
+
+scenario_counter <- 1
+
+for (t_val in t_between_screens) {
+  
+  mm_scenario <- MarkovModel(trans_matrix = trans_prob_mat,
+                             cost_matrix = cost_mat,
+                             q_matrix = q_mat,
+                             init_probs = p_init,
+                             mapping = mapping,
+                             n_cycles = t_val)
+  
+  pair_model_scenario <- CombinedModel(dt, mm_scenario)
+  
+  for (n_scr in num_screens) {
+    
+    screening_submodels <- rep(list(pair_model_scenario), n_scr)
+    
+    screening_model <- do.call(CombinedModel, args = screening_submodels)
+    
+    results_scenario <- run_model(screening_model)
+    
+    result_label <- paste0("t_between_", t_val, "_screens_", n_scr)
+    
+    all_results[[result_label]] <- list(
+      t_between_screens = t_val,
+      num_screens = n_scr,
+      results = results_scenario)
+    
+    scenario_counter <- scenario_counter + 1
+  }
+}
+
 
