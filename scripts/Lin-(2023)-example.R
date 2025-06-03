@@ -198,6 +198,9 @@ screening_results10 <- run_model(screening_model10)
 #########################
 # loop through scenarios
 
+##TODO: should have the final markov model to death
+##      e.g. for 100 years or until prob death = 1
+
 t_between_screens <- c(2, 5, 10, 15, 20)
 num_screens <- c(1, 2, 3, 4, 5, 10)
 
@@ -220,7 +223,7 @@ for (t_val in t_between_screens) {
   
   for (n_scr in num_screens) {
     
-    screening_submodels <- rep(list(pair_model_scenario), n_scr)
+    screening_submodels <- rep(pair_model_scenario, n_scr)
     
     screening_model <- do.call(CombinedModel, args = screening_submodels)
     
