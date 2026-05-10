@@ -196,55 +196,6 @@ run_model.DecisionTree <- function(model) {
     class = c("output", class(model)))
 }
 
-#' #' dummy function
-#' #' @export
-#' run_model.MarkovModel <- function(model) {
-#'   
-#'   init_probs <- model$init_probs
-#'   
-#'   res <- data.frame(
-#'     decision = c("Treatment A", "Treatment B"),
-#'     expected_cost = c(100, 100),
-#'     expected_eff = c(1,1))
-#'   
-#'   if (!is.na(model$N)) {
-#'     res$expected_cost <- res$expected_cost * model$N
-#'     res$expected_eff <- res$expected_eff * model$N
-#'   }
-#'   
-#'   structure(res,
-#'             class = c("output", class(model)))
-#' }
-
-#' Wrapper for adapter function
-#' @export
-run_model.MarkovModel <- function(model) {
-
-  out <- markov_model(start_pop = model$init_probs,
-                      p_matrix = model$trans_matrix,
-                      state_c_matrix = model$cost_matrix,
-                      state_q_matrix = model$q_matrix,
-                      n_cycles = model$n_cycles)
-  
-  node_names <- names(model$init_probs[, , 1])
-  tx_names <- dimnames(model$trans_matrix)[[3]]
-  
-  # harmonise 
-  res <- list()
-  res$terminal <- out$final_state
-  res$expected_cost <- out$total_costs
-  res$expected_eff <- out$total_QALYs
-  res$pop <- out$pop
-  
-  ##TODO: hacky
-  # convert to long dataframe
-  dimnames(res$terminal) <- list(node_names, tx_names)
-  res$terminal <- reshape2::melt(res$terminal)
-  colnames(res$terminal) <- c("state", "treatment", "probs")
-  
-  structure(res,
-            class = c("output", class(model)))
-}
 
 #' Model analysis
 #' 

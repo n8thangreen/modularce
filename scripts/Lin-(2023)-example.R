@@ -6,6 +6,7 @@
 
 library(tibble)
 library(dplyr)
+library(heemod)
 
 ## define model data
 
@@ -141,6 +142,7 @@ p_init <- array(c(1, 0, 0, 0, 0, 0),
 
 dt <- DecisionTree(decision_tree)
 
+# every 2 years
 mm2 <- MarkovModel(trans_matrix = trans_prob_mat,
                    cost_matrix = cost_mat,
                    q_matrix = q_mat,
@@ -148,6 +150,7 @@ mm2 <- MarkovModel(trans_matrix = trans_prob_mat,
                    mapping = mapping,
                    n_cycles = 2)
 
+# every 5 years
 mm5 <- MarkovModel(trans_matrix = trans_prob_mat,
                    cost_matrix = cost_mat,
                    q_matrix = q_mat,
@@ -155,6 +158,7 @@ mm5 <- MarkovModel(trans_matrix = trans_prob_mat,
                    mapping = mapping,
                    n_cycles = 5)
 
+# every 10 years
 mm10 <- MarkovModel(trans_matrix = trans_prob_mat,
                     cost_matrix = cost_mat,
                     q_matrix = q_mat,
@@ -166,6 +170,7 @@ mm10 <- MarkovModel(trans_matrix = trans_prob_mat,
 
 # single
 run_model(dt)
+
 res5 <- run_model(mm5)
 res10 <- run_model(mm10)
 
@@ -182,6 +187,7 @@ results5 <-
   CombinedModel(pair_model5, pair_model5) |> 
   run_model()
 
+# time horizon 20 years
 screening_submodels2 <- rep(pair_model2, 10)
 screening_model2 <- do.call(CombinedModel, args = screening_submodels2)
 screening_results2 <- run_model(screening_model2)
@@ -202,7 +208,7 @@ screening_results10 <- run_model(screening_model10)
 ##      e.g. for 100 years or until prob death = 1
 
 t_between_screens <- c(2, 5, 10, 15, 20)
-num_screens <- c(1, 2, 3, 4, 5, 10)
+num_screens <- c(1, 2, 3, 4, 5, 10)  # -> time horizon
 
 all_results <- list()
 
