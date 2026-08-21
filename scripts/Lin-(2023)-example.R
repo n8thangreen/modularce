@@ -1,7 +1,9 @@
+# ==========================================================
 # example script from:
 # Lin, Y. S., O’Mahony, J. F., & van Rosmalen, J. (2023)
 # A Simple Cost-Effectiveness Model of Screening: An Open-Source Teaching and Research Tool Coded in R. PharmacoEconomics - Open, 7(4), 507–523
 # https://doi.org/10.1007/s41669-023-00414-1
+# ==========================================================
 
 
 library(tibble)
@@ -36,23 +38,26 @@ decision_tree <- tribble(
   "A",        "Disease",            "FN_Disease",     0,   50,      0,     # False Negative for active disease
 )
 
+# markov model
 states <- c("Healthy", "Pre_clinical_Disease", "Disease", "Treated", "Death_from_Disease", "Other_Cause_Death")
 
 # Mapping from decision tree terminal nodes to Markov states
 # same for all treatments
+#          # dt        mm        
 mapping <- c(Treated = "Treated",
-             FP = "Treated",
-             TN = "Healthy",
+             FP      = "Treated",
+             TN      = "Healthy",
              TP_Preclinical = "Treated",
              FN_Preclinical = "Pre_clinical_Disease",
-             TP_Disease = "Treated",
-             FN_Disease = "Disease",
+             TP_Disease     = "Treated",
+             FN_Disease     = "Disease",
              Death_from_Disease = "Death_from_Disease",
-             Other_Cause_Death = "Other_Cause_Death")
+             Other_Cause_Death  = "Other_Cause_Death")
 
-# will need to order of states
+# need to order states
 mapping <- factor(mapping, levels = states)
 
+# transition probabilities in markov model
 trans_prob_mat <- array(
   c(
     # FROM Healthy (H)
