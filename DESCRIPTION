@@ -20,4 +20,10 @@ Imports:
 Suggests: 
     S7,
     heemod,
-    ggplot2
+    ggplot2,
+    DiagrammeR,
+    DiagrammeRsvg,
+    glue,
+    rsvg,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
