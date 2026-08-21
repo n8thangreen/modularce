@@ -6,6 +6,9 @@
 \usage{
 CombinedModel(...)
 }
+\arguments{
+\item{...}{Submodels to combine}
+}
 \description{
 Combine all submodels in to a single list
 }

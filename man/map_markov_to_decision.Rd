@@ -6,6 +6,11 @@
 \usage{
 map_markov_to_decision(dt_model, markov_result)
 }
+\arguments{
+\item{dt_model}{Decision tree model}
+
+\item{markov_result}{Markov model output}
+}
 \description{
 States from Markov model to decision tree
 }

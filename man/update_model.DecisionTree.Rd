@@ -2,10 +2,15 @@
 % Please edit documentation in R/functions.R
 \name{update_model.DecisionTree}
 \alias{update_model.DecisionTree}
-\title{Decision tree}
+\title{Decision tree update method}
 \usage{
 \method{update_model}{DecisionTree}(model, result)
 }
+\arguments{
+\item{model}{DecisionTree object}
+
+\item{result}{MarkovModel output object}
+}
 \description{
-Decision tree
+Decision tree update method
 }

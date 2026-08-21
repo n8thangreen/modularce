@@ -28,9 +28,9 @@ MarkovModel <- new_class(
   parent = Model,
   properties = list(
     init_probs = class_list,
-    trans_matrix = class_array,
-    cost_matrix = class_array,
-    q_matrix = class_array,
+    trans_matrix = class_numeric,
+    cost_matrix = class_numeric,
+    q_matrix = class_numeric,
     mapping = class_numeric
   )
 )
@@ -40,7 +40,14 @@ MarkovModelOutput <- new_class("MarkovModelOutput", parent = ModelOutput, proper
 CombinedModel <- new_class(
   "CombinedModel",
   parent = Model,
-  properties = list(models = class_list)
+  properties = list(models = class_list),
+  constructor = function(...) {
+    models <- list(...)
+    if (length(models) < 2) {
+      stop("At least two models must be provided.")
+    }
+    new_object(S7_object(), models = models)
+  }
 )
 
 #================================================================
@@ -155,7 +162,7 @@ dt1 <- DecisionTree(data = decision_tree_data)
 
 # Create a MarkovModel, leaving init_probs empty as it will be updated
 mm <- MarkovModel(
-  mapping = c(1, 2, 2, 1), # Mapping from DT nodes to MM states
+  mapping = c(1, 2), # Mapping from DT nodes to MM states
   trans_matrix = array(c(0.9, 0.1, 0.2, 0.8, 0.9, 0.1, 0.2, 0.8), dim = c(2, 2, 2)),
   cost_matrix = array(c(1000, 2000), dim = c(1, 2, 2)),
   q_matrix = array(c(1, 0), dim = c(1, 2, 2))

@@ -6,6 +6,11 @@
 \usage{
 update_model(model, result)
 }
+\arguments{
+\item{model}{Model to update}
+
+\item{result}{Output from previous model}
+}
 \description{
 Provide additional components needed for each model
 }

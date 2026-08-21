@@ -6,6 +6,11 @@
 \usage{
 map_decision_to_markov(decision_result, mapping)
 }
+\arguments{
+\item{decision_result}{Output from decision tree model}
+
+\item{mapping}{Named mapping vector from terminal nodes to Markov states}
+}
 \value{
 dataframe of probabilities by treatment
 }

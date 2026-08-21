@@ -6,6 +6,11 @@
 \usage{
 analysis(results, ...)
 }
+\arguments{
+\item{results}{Output of a model run}
+
+\item{...}{Additional arguments}
+}
 \description{
 Take the output of a model run and
 return cost effectiveness values

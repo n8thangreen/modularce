@@ -18,7 +18,7 @@ DecisionTree <- new_class(
   ),
   constructor = function(data, N = NA_real_) {
     new_object(
-      .S7_object(),
+      S7_object(),
       data = data,
       N = N
     )
@@ -31,9 +31,9 @@ MarkovModel <- new_class(
   parent = Model,
   properties = list(
     init_probs = class_list,
-    trans_matrix = class_array,
-    cost_matrix = class_array,
-    q_matrix = class_array,
+    trans_matrix = class_numeric,
+    cost_matrix = class_numeric,
+    q_matrix = class_numeric,
     mapping = class_numeric,
     N = class_numeric,
     n_cycles = class_integer
@@ -46,7 +46,7 @@ MarkovModel <- new_class(
                          N = NA_real_,
                          n_cycles = 10L) {
     new_object(
-      .S7_object(),
+      S7_object(),
       init_probs = init_probs,
       trans_matrix = trans_matrix,
       cost_matrix = cost_matrix,
@@ -73,7 +73,7 @@ CombinedModel <- new_class(
     if (!all(sapply(models, function(m) inherits(m, "S7_object")))) {
       stop("All arguments must be S7 objects.")
     }
-    new_object(.S7_object(), models = models)
+    new_object(S7_object(), models = models)
   }
 )
 
@@ -83,7 +83,8 @@ CombinedModel <- new_class(
 
 # Define generics
 run_model <- new_generic("run_model", "model")
-update_model <- new_generic("update_model", c("model", "result"))
+update_model <- new_generic("update_model", "model")
+
 get_costs <- new_generic("get_costs", "results")
 get_effects <- new_generic("get_effects", "results")
 
@@ -201,9 +202,6 @@ method(get_effects, CombinedModel) <- function(results) {
 library(tibble)
 library(dplyr)
 library(S7)
-
-# Source the S7 functions from the file where you saved them
-source("s7_functions.R") # Make sure to change this to the correct file path
 
 #================================================================
 # Example Data

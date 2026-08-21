@@ -4,10 +4,12 @@
 \alias{run_model.CombinedModel}
 \title{Loop through each sequential submodel}
 \usage{
-\method{run_model}{CombinedModel}(model_chain)
+\method{run_model}{CombinedModel}(model, ...)
 }
 \arguments{
-\item{model_chain}{list (possibly nested) of submodels}
+\item{model}{CombinedModel object (list of submodels)}
+
+\item{...}{Additional arguments}
 }
 \description{
 Loop through each sequential submodel
