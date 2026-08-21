@@ -131,46 +131,77 @@ update_model.default <- function(model, result) {
 
 # how does the output of one model plug into the input of the next model? 
 
-#' States from decision tree to Markov model
-#' @param decision_result Output from decision tree model
-#' @param mapping Named mapping vector from terminal nodes to Markov states
-#' @return dataframe of probabilities by treatment
-#' @importFrom stats setNames
+#' Map Decision Tree Terminal Node Probabilities to Markov Model Initial States
+#' 
+#' Aggregates the terminal node probabilities from a Decision Tree output according
+#' to a mapping vector, and formats them into a 3D array `[1, states, treatments]`
+#' suitable as initial state probabilities (`init_probs`) for a Markov model.
+#' 
+#' @param decision_result Output object from `run_model(decision_tree)` containing `$path_results`
+#' @param mapping Named vector mapping Decision Tree `terminal_node` names to Markov `state` names
+#' @return 3D array of dimensions `c(1, n_states, n_treatments)` with initial state probabilities
 #' @export
 map_decision_to_markov <- function(decision_result, mapping) {
-  all_states <- if (is.factor(mapping)) levels(mapping) else unique(unname(mapping))
+  # 1. Identify all unique Markov target states and treatments
+  states <- if (is.factor(mapping)) levels(mapping) else unique(unname(mapping))
+  treatments <- unique(decision_result$path_results$treatment)
   
-  df <- 
-    decision_result$path_results |>
-    mutate(state = factor(mapping[terminal_node], levels = all_states)) |> 
-    group_by(treatment, state, .drop = FALSE) |> 
-    summarise(p = sum(terminal_prob), .groups = "drop")
+  # 2. Match each decision tree terminal node to its mapped Markov state
+  pathways <- decision_result$path_results
+  pathways$state <- mapping[pathways$terminal_node]
   
-  # rearrange to 3D format
-  wide_df <- 
-    tidyr::pivot_wider(
-      df, names_from = state,
-      values_from = p,
-      values_fill = 0) |> 
-    ungroup() 
+  # 3. Sum probabilities for each (treatment, state) combination
+  state_probabilities <- pathways |>
+    dplyr::group_by(treatment, state) |>
+    dplyr::summarise(prob = sum(terminal_prob), .groups = "drop")
   
-  res <- 
-    wide_df |> 
-    select(-treatment) |> 
-    split(wide_df$treatment) |> 
-    simplify2array()
+  # 4. Construct the 3D array [1, n_states, n_treatments]
+  init_array <- array(
+    data = 0,
+    dim = c(1, length(states), length(treatments)),
+    dimnames = list(NULL, state = states, treatment = treatments)
+  )
+  
+  # 5. Populate array cells by treatment and state name
+  for (trt in treatments) {
+    trt_data <- state_probabilities[state_probabilities$treatment == trt, ]
+    valid_states <- intersect(trt_data$state, states)
+    if (length(valid_states) > 0) {
+      match_rows <- match(valid_states, trt_data$state)
+      init_array[1, valid_states, trt] <- trt_data$prob[match_rows]
+    }
+  }
+  
+  init_array
 }
 
-#' States from Markov model to decision tree
-#' @param dt_model Decision tree model
-#' @param markov_result Markov model output
+#' Map Markov Model Ending States to Decision Tree Branch Probabilities
+#' 
+#' Updates the transition probabilities (`prob`) in a Decision Tree model data table
+#' using the final state occupancy probabilities from a Markov model output.
+#' 
+#' @param dt_model DecisionTree model object containing `$data`
+#' @param markov_result Output object from `run_model(markov_model)` containing `$terminal`
+#' @return Updated decision tree data frame with adjusted branch probabilities
 #' @export
 map_markov_to_decision <- function(dt_model, markov_result) {
-
-  left_join(dt_model$data, markov_result$terminal,
-            by = c("to" = "state", "treatment")) |> 
-    mutate(prob = coalesce(probs, prob)) |> 
-    select(-probs)
+  # 1. Extract Markov end-cycle state occupancy probabilities and clarify column names
+  markov_terminal <- markov_result$terminal |>
+    dplyr::rename(markov_prob = probs)
+  
+  # 2. Join Markov probabilities onto matching decision tree branches ('to' node == Markov 'state')
+  updated_data <- dt_model$data |>
+    dplyr::left_join(
+      markov_terminal,
+      by = c("to" = "state", "treatment")
+    ) |>
+    dplyr::mutate(
+      # If a matching Markov end-state probability exists, use it; otherwise keep original prob
+      prob = dplyr::coalesce(markov_prob, prob)
+    ) |>
+    dplyr::select(-markov_prob)
+  
+  updated_data
 }
 
 ##########

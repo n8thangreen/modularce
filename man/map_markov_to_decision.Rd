@@ -2,15 +2,19 @@
 % Please edit documentation in R/functions.R
 \name{map_markov_to_decision}
 \alias{map_markov_to_decision}
-\title{States from Markov model to decision tree}
+\title{Map Markov Model Ending States to Decision Tree Branch Probabilities}
 \usage{
 map_markov_to_decision(dt_model, markov_result)
 }
 \arguments{
-\item{dt_model}{Decision tree model}
+\item{dt_model}{DecisionTree model object containing \verb{$data}}
 
-\item{markov_result}{Markov model output}
+\item{markov_result}{Output object from \code{run_model(markov_model)} containing \verb{$terminal}}
+}
+\value{
+Updated decision tree data frame with adjusted branch probabilities
 }
 \description{
-States from Markov model to decision tree
+Updates the transition probabilities (\code{prob}) in a Decision Tree model data table
+using the final state occupancy probabilities from a Markov model output.
 }

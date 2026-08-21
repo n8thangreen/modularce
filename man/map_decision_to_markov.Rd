@@ -2,18 +2,20 @@
 % Please edit documentation in R/functions.R
 \name{map_decision_to_markov}
 \alias{map_decision_to_markov}
-\title{States from decision tree to Markov model}
+\title{Map Decision Tree Terminal Node Probabilities to Markov Model Initial States}
 \usage{
 map_decision_to_markov(decision_result, mapping)
 }
 \arguments{
-\item{decision_result}{Output from decision tree model}
+\item{decision_result}{Output object from \code{run_model(decision_tree)} containing \verb{$path_results}}
 
-\item{mapping}{Named mapping vector from terminal nodes to Markov states}
+\item{mapping}{Named vector mapping Decision Tree \code{terminal_node} names to Markov \code{state} names}
 }
 \value{
-dataframe of probabilities by treatment
+3D array of dimensions \code{c(1, n_states, n_treatments)} with initial state probabilities
 }
 \description{
-States from decision tree to Markov model
+Aggregates the terminal node probabilities from a Decision Tree output according
+to a mapping vector, and formats them into a 3D array \verb{[1, states, treatments]}
+suitable as initial state probabilities (\code{init_probs}) for a Markov model.
 }
