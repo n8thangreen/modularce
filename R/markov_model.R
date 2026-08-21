@@ -6,12 +6,11 @@ markov_model <- function(start_pop,
                          p_matrix,
                          state_c_matrix,
                          state_q_matrix,
-                         n_cycles = 46,
-                         init_age = 55,
+                         n_cycles = 2,
                          s_names = NULL,
                          t_names = NULL) {
   
-  n_states <- length(start_pop)
+  n_states <- ncol(p_matrix)
   n_treat <- dim(p_matrix)[3]
   
   pop <- array(data = NA,
@@ -20,8 +19,8 @@ markov_model <- function(start_pop,
                                cycle = NULL,
                                treatment = t_names))
   
-  for (i in 1:n_states) {
-    pop[i, cycle = 1, ] <- start_pop[i]
+  for (i in 1:n_treat) {
+    pop[, cycle = 1, i] <- unlist(start_pop[1, , i])
   }
   
   cycle_empty_array <-
@@ -38,39 +37,32 @@ markov_model <- function(start_pop,
   total_QALYs <- setNames(rep(NA, n_treat), t_names)
   
   for (i in 1:n_treat) {
-    
-    age <- init_age
-    
     for (j in 2:n_cycles) {
-      
-      # difference from point estimate case
-      # pass in functions for random sample
-      # rather than fixed values
-      p_matrix <- p_matrix_cycle(p_matrix, age, j - 1,
-                                 tpProg = tpProg(),
-                                 tpDcm = tpDcm(),
-                                 effect = effect())
       
       # Matrix multiplication
       pop[, cycle = j, treatment = i] <-
         pop[, cycle = j - 1, treatment = i] %*% p_matrix[, , treatment = i]
-      
-      age <- age + 1
     }
     
     cycle_costs[i, ] <-
-      (state_c_matrix[treatment = i, ] %*% pop[, , treatment = i]) * 1/(1 + cDr)^(1:n_cycles - 1)
+      (state_c_matrix[, , treatment = i] %*% pop[, , treatment = i]) * 1/(1 + 0.035)^(1:n_cycles - 1)
     
     cycle_QALE[i, ] <-
-      state_q_matrix[treatment = i, ] %*%  pop[, , treatment = i]
+      state_q_matrix[, , treatment = i] %*%  pop[, , treatment = i]
     
-    cycle_QALYs[i, ] <- cycle_QALE[i, ] * 1/(1 + oDr)^(1:n_cycles - 1)
+    cycle_QALYs[i, ] <- cycle_QALE[i, ] * 1/(1 + 0.035)^(1:n_cycles - 1)
     
     total_costs[i] <- sum(cycle_costs[treatment = i, -1])
     total_QALYs[i] <- sum(cycle_QALYs[treatment = i, -1])
   }
   
-  list(pop = pop,
+  final_pop <- pop[, n_cycles, , drop = FALSE]
+  
+  list_of_slices <- lapply(1:dim(final_pop)[3], function(i) final_pop[, , i])
+  final_pop_mat <- do.call(cbind, list_of_slices)
+  
+  list(final_state = final_pop_mat,
+       pop = pop[, , , drop = FALSE],
        total_costs = total_costs,
        total_QALYs = total_QALYs)
 }
