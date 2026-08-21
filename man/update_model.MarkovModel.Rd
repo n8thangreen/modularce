@@ -9,7 +9,7 @@
 \arguments{
 \item{model}{MarkovModel object}
 
-\item{result}{DecisionTree output object}
+\item{result}{Output object from previous model}
 }
 \description{
 Markov model update method

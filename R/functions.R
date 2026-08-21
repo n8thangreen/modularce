@@ -97,19 +97,23 @@ update_model <- function(model, result) {
 
 #' Markov model update method
 #' @param model MarkovModel object
-#' @param result DecisionTree output object
+#' @param result Output object from previous model
 #' @export
 update_model.MarkovModel <- function(model, result) {
-  model$init_probs <- map_decision_to_markov(result, model$mapping)
+  if (!is.null(result$path_results) && !is.null(model$mapping)) {
+    model$init_probs <- map_decision_to_markov(result, model$mapping)
+  }
   model
 }
 
 #' Decision tree update method
 #' @param model DecisionTree object
-#' @param result MarkovModel output object
+#' @param result Output object from previous model
 #' @export
 update_model.DecisionTree <- function(model, result) {
-  model$data <- map_markov_to_decision(model, result)
+  if (!is.null(result$terminal)) {
+    model$data <- map_markov_to_decision(model, result)
+  }
   model
 }
 
@@ -134,17 +138,20 @@ update_model.default <- function(model, result) {
 #' @importFrom stats setNames
 #' @export
 map_decision_to_markov <- function(decision_result, mapping) {
+  all_states <- if (is.factor(mapping)) levels(mapping) else unique(unname(mapping))
+  
   df <- 
     decision_result$path_results |>
-    mutate(state = mapping[terminal_node]) |> 
-    group_by(treatment, state) |> 
-    summarise(p = sum(terminal_prob))
+    mutate(state = factor(mapping[terminal_node], levels = all_states)) |> 
+    group_by(treatment, state, .drop = FALSE) |> 
+    summarise(p = sum(terminal_prob), .groups = "drop")
   
   # rearrange to 3D format
   wide_df <- 
     tidyr::pivot_wider(
       df, names_from = state,
-      values_from = p) |> 
+      values_from = p,
+      values_fill = 0) |> 
     ungroup() 
   
   res <- 
