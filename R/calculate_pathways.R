@@ -24,6 +24,9 @@ calculate_pathways <- function(model) {
     
     completed_paths <- list()
     
+    # Pre-process transitions by 'from' node to avoid dplyr filtering in the loop
+    transitions_by_from <- split(current_tree, current_tree$from)
+
     # Iteratively expand paths until no more transitions are possible
     while (length(paths) > 0) {
       current_path <- paths[[1]]
@@ -31,10 +34,10 @@ calculate_pathways <- function(model) {
       
       from_node <- current_path$current_node
       
-      # Find all transitions originating from the current node
-      transitions <- current_tree %>% filter(from == from_node)
+      # Find all transitions originating from the current node using pre-processed list
+      transitions <- transitions_by_from[[from_node]]
       
-      if (nrow(transitions) == 0) {
+      if (is.null(transitions) || nrow(transitions) == 0) {
         # No more transitions from this node, so this path is complete
         completed_paths <- append(completed_paths, list(current_path))
       } else {
