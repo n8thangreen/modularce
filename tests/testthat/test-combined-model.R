@@ -62,3 +62,43 @@ test_that("CombinedModel executes model chain and updates intermediate inputs", 
   expect_true(get_costs(results) > 0)
   expect_true(get_effects(results) > 0)
 })
+
+test_that("map_markov_to_decision joins Markov terminal probabilities to Decision Tree data", {
+  dt_data <- tibble::tribble(
+    ~treatment, ~from,   ~to,        ~prob, ~cost, ~eff,
+    "A",        "root",  "State1",    0.5,   10,    0.5,
+    "A",        "root",  "State2",    0.5,   20,    0.3,
+    "B",        "root",  "State1",    0.2,   10,    0.5,
+    "B",        "root",  "State2",    0.8,   20,    0.3,
+    "A",        "State1","Terminal1", 1.0,   0,     0
+  )
+  dt <- DecisionTree(dt_data)
+
+  markov_result <- list(terminal = tibble::tribble(
+    ~state,   ~treatment, ~probs,
+    "State1", "A",        0.9,
+    "State2", "A",        0.1,
+    "State1", "B",        0.7,
+    "State2", "B",        0.3
+  ))
+
+  res <- map_markov_to_decision(dt, markov_result)
+
+  # Check probabilities for treatment A
+  prob_A_State1 <- res$prob[res$treatment == "A" & res$to == "State1"]
+  expect_equal(prob_A_State1, 0.9)
+
+  prob_A_State2 <- res$prob[res$treatment == "A" & res$to == "State2"]
+  expect_equal(prob_A_State2, 0.1)
+
+  # Check probabilities for treatment B
+  prob_B_State1 <- res$prob[res$treatment == "B" & res$to == "State1"]
+  expect_equal(prob_B_State1, 0.7)
+
+  prob_B_State2 <- res$prob[res$treatment == "B" & res$to == "State2"]
+  expect_equal(prob_B_State2, 0.3)
+
+  # Check probability that shouldn't change
+  prob_A_Terminal1 <- res$prob[res$treatment == "A" & res$to == "Terminal1"]
+  expect_equal(prob_A_Terminal1, 1.0)
+})
