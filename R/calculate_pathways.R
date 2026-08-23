@@ -12,22 +12,25 @@ calculate_pathways <- function(model) {
     current_tree <- tree_data %>% filter(treatment == trt)
     
     # Initialize paths with root nodes
-    paths <- list(
-      list(
-        current_node = "root",
-        path_nodes = "root",
-        path_prob = 1, # Probability of starting at root is 1
-        path_cost = 0,
-        path_eff = 0
-      )
+    paths <- vector("list", 1024)
+    paths[[1]] <- list(
+      current_node = "root",
+      path_nodes = "root",
+      path_prob = 1, # Probability of starting at root is 1
+      path_cost = 0,
+      path_eff = 0
     )
     
-    completed_paths <- list()
+    head_idx <- 1
+    tail_idx <- 1
+
+    completed_paths <- vector("list", 1024)
+    completed_idx <- 0
     
     # Iteratively expand paths until no more transitions are possible
-    while (length(paths) > 0) {
-      current_path <- paths[[1]]
-      paths <- paths[-1] # Remove the current path from the list to process
+    while (head_idx <= tail_idx) {
+      current_path <- paths[[head_idx]]
+      head_idx <- head_idx + 1
       
       from_node <- current_path$current_node
       
@@ -36,7 +39,11 @@ calculate_pathways <- function(model) {
       
       if (nrow(transitions) == 0) {
         # No more transitions from this node, so this path is complete
-        completed_paths <- append(completed_paths, list(current_path))
+        completed_idx <- completed_idx + 1
+        if (completed_idx > length(completed_paths)) {
+          length(completed_paths) <- length(completed_paths) * 2
+        }
+        completed_paths[[completed_idx]] <- current_path
       } else {
         # Expand current path with each possible transition
         for (i in 1:nrow(transitions)) {
@@ -48,11 +55,18 @@ calculate_pathways <- function(model) {
             path_cost = current_path$path_cost + transition$cost,
             path_eff = current_path$path_eff + transition$eff
           )
-          paths <- append(paths, list(new_path))
+
+          tail_idx <- tail_idx + 1
+          if (tail_idx > length(paths)) {
+            length(paths) <- length(paths) * 2
+          }
+          paths[[tail_idx]] <- new_path
         }
       }
     }
     
+    completed_paths <- completed_paths[seq_len(completed_idx)]
+
     # Convert completed paths to a tibble for the current treatment
     path_df <- completed_paths %>%
       purrr::map_df(~tibble(
