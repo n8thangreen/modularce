@@ -13,7 +13,7 @@ get_costs <- function(results, ...) {
 #' @param ... Additional arguments
 #' @export
 get_costs.default <- function(results, ...) {
-  stop("No method for this model")
+  results$expected_cost
 }
 
 #' Extract costs from DecisionTree results
@@ -57,7 +57,7 @@ get_effects <- function(results, ...) {
 #' @param ... Additional arguments
 #' @export
 get_effects.default <- function(results, ...) {
-  stop("No method for this model")
+  results$expected_eff
 }
 
 #' Extract health effects from DecisionTree results
