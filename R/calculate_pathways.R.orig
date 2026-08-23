@@ -2,15 +2,15 @@
 # ai generated
 calculate_pathways <- function(model) {
   tree_data <- model$data
-  
+
   treatments <- unique(tree_data$treatment)
-  
+
   all_path_results <- list()
-  
+
   for (trt in treatments) {
     # Filter tree for the current treatment
     current_tree <- tree_data %>% filter(treatment == trt)
-    
+
     # Initialize paths with root nodes
     paths <- list(
       list(
@@ -21,20 +21,19 @@ calculate_pathways <- function(model) {
         path_eff = 0
       )
     )
-    
+
     completed_paths <- list()
-    path_idx <- 1
-    
+
     # Iteratively expand paths until no more transitions are possible
-    while (path_idx <= length(paths)) {
-      current_path <- paths[[path_idx]]
-      path_idx <- path_idx + 1
-      
+    while (length(paths) > 0) {
+      current_path <- paths[[1]]
+      paths <- paths[-1] # Remove the current path from the list to process
+
       from_node <- current_path$current_node
-      
+
       # Find all transitions originating from the current node
       transitions <- current_tree %>% filter(from == from_node)
-      
+
       if (nrow(transitions) == 0) {
         # No more transitions from this node, so this path is complete
         completed_paths <- append(completed_paths, list(current_path))
@@ -53,7 +52,7 @@ calculate_pathways <- function(model) {
         }
       }
     }
-    
+
     # Convert completed paths to a tibble for the current treatment
     path_df <- completed_paths %>%
       purrr::map_df(~tibble(
@@ -64,9 +63,9 @@ calculate_pathways <- function(model) {
         path_cost = .x$path_cost,
         path_eff = .x$path_eff
       ))
-    
+
     all_path_results[[trt]] <- path_df
   }
-  
+
   return(bind_rows(all_path_results))
 }
