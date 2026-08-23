@@ -1,5 +1,9 @@
 # getters
 
+default_method_error <- function() {
+  stop("No method for this model")
+}
+
 #' Extract costs from model results
 #' @param results Model output results
 #' @param ... Additional arguments passed to methods
@@ -13,7 +17,7 @@ get_costs <- function(results, ...) {
 #' @param ... Additional arguments
 #' @export
 get_costs.default <- function(results, ...) {
-  stop("No method for this model")
+  default_method_error()
 }
 
 #' Extract costs from DecisionTree results
@@ -57,7 +61,7 @@ get_effects <- function(results, ...) {
 #' @param ... Additional arguments
 #' @export
 get_effects.default <- function(results, ...) {
-  stop("No method for this model")
+  default_method_error()
 }
 
 #' Extract health effects from DecisionTree results
