@@ -205,7 +205,7 @@ map_markov_to_decision <- function(dt_model, markov_result) {
 }
 
 ##########
-# runners
+# runners / orchestrators
 
 #' Loop through each sequential submodel
 #'
