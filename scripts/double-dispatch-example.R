@@ -183,33 +183,50 @@ map_markov_to_decision <- function(markov_result) {
 
 #######################################
 # define the update_model S3 functions
-# a kind of double dispatch approach
+# a pure S3 double dispatch approach
 
-update_model <- function(target, previous) {
+update_model <- function(target, previous, ...) {
   UseMethod("update_model")
 }
 
-update_model.DecisionTree <- function(target, previous) {
-  UseMethod("update_model.DecisionTree", previous)
+update_model.DecisionTree <- function(target, previous, ...) {
+  update_model_DecisionTree(previous, target, ...)
 }
 
-update_model.MarkovModel <- function(target, previous) {
-  UseMethod("update_model.MarkovModel", previous)
+update_model.MarkovModel <- function(target, previous, ...) {
+  update_model_MarkovModel(previous, target, ...)
 }
-         
-update_model.DecisionTree.MarkovModel <- function(target, previous) {
+
+update_model.default <- function(target, previous, ...) {
+  warning("No update method for this model type; returning model unchanged.")
+  target
+}
+
+update_model_DecisionTree <- function(previous, target, ...) {
+  UseMethod("update_model_DecisionTree")
+}
+
+update_model_DecisionTree.MarkovModelOutput <- function(previous, target, ...) {
   target$data <- map_markov_to_decision(previous)
   target
 }
 
-
-update_model.MarkovModel.DecisionTree <- function(target, previous) {
-  target$data <- map_decision_to_markov(target, target$mapping)
+update_model_DecisionTree.default <- function(previous, target, ...) {
+  warning("No specific DecisionTree update for this output")
   target
 }
 
-update_model.default <- function(target, previous) {
-  warning("No update method for this model type; returning model unchanged.")
+update_model_MarkovModel <- function(previous, target, ...) {
+  UseMethod("update_model_MarkovModel")
+}
+
+update_model_MarkovModel.DecisionTreeOutput <- function(previous, target, ...) {
+  target$init_probs <- map_decision_to_markov(previous, target$mapping)
+  target
+}
+
+update_model_MarkovModel.default <- function(previous, target, ...) {
+  warning("No specific MarkovModel update for this output")
   target
 }
 

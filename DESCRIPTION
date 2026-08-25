@@ -25,5 +25,6 @@ Suggests:
     DiagrammeRsvg,
     glue,
     rsvg,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    mockery
 Config/testthat/edition: 3

@@ -28,6 +28,17 @@ test_that("map_decision_to_markov maps terminal probabilities to initial Markov 
   expect_equal(as.vector(unlist(init_arr)), c(0.7, 0.3))
 })
 
+test_that("update_model.default issues warning and returns unmodified model", {
+  dummy_model <- structure(list(a = 1), class = c("DummyModel", "Model"))
+  dummy_result <- list(b = 2)
+
+  expect_warning(
+    updated_model <- update_model(dummy_model, dummy_result),
+    "No update method defined for this model type. Returning model unmodified."
+  )
+  expect_equal(updated_model, dummy_model)
+})
+
 test_that("CombinedModel executes model chain and updates intermediate inputs", {
   dt_data <- tibble::tribble(
     ~treatment, ~from,   ~to,        ~prob, ~cost, ~eff,
