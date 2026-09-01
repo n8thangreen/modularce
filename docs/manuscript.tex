@@ -650,9 +650,9 @@ behind the scenes:
 \begin{Shaded}
 \begin{Highlighting}[]
 \NormalTok{modelfun.modelclass }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(x, ...) \{}
-  \CommentTok{\# 1. Translate incoming data into a format the model needs}
-  \CommentTok{\# 2. Execute the model}
-  \CommentTok{\# 3. Translate results back into a standardized output format}
+\CommentTok{\# 1. Translate incoming data into a format the model needs}
+\CommentTok{\# 2. Execute the model}
+\CommentTok{\# 3. Translate results back into a standardized output format}
 \NormalTok{\}}
 \end{Highlighting}
 \end{Shaded}
@@ -798,9 +798,10 @@ are:
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{DecisionTree }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(data) \{}
+\NormalTok{DecisionTree }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(data, }\AttributeTok{disc\_rate =} \FloatTok{0.035}\NormalTok{) \{}
   \FunctionTok{structure}\NormalTok{(}
-    \FunctionTok{list}\NormalTok{(}\AttributeTok{data =}\NormalTok{ data),}
+    \FunctionTok{list}\NormalTok{(}\AttributeTok{data =}\NormalTok{ data,}
+         \AttributeTok{discount\_rate =}\NormalTok{ disc\_rate),}
     \AttributeTok{class =} \FunctionTok{c}\NormalTok{(}\StringTok{"DecisionTree"}\NormalTok{, }\StringTok{"Model"}\NormalTok{))}
 \NormalTok{\}}
 
@@ -872,24 +873,30 @@ submodels are defined next:
     \AttributeTok{cost\_vec      =}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{cost\_vector,}
     \AttributeTok{util\_vec      =}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{util\_vector,}
     \AttributeTok{n\_cycles      =}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{n\_cycles,}
-    \AttributeTok{discount\_rate =}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{discount\_rate}
+    \AttributeTok{discount\_rate =}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{discount\_rate,}
+    \AttributeTok{start\_cycle   =} \FunctionTok{ifelse}\NormalTok{(}\FunctionTok{is.null}\NormalTok{(model}\SpecialCharTok{$}\NormalTok{start\_cycle), }\DecValTok{0}\NormalTok{, model}\SpecialCharTok{$}\NormalTok{start\_cycle)}
 \NormalTok{  )}
   
   \FunctionTok{list}\NormalTok{(}
-      \AttributeTok{expected\_cost =}\NormalTok{ out}\SpecialCharTok{$}\NormalTok{expected\_cost,}
-      \AttributeTok{expected\_eff  =}\NormalTok{ out}\SpecialCharTok{$}\NormalTok{expected\_eff,}
-      \AttributeTok{terminal      =}\NormalTok{ out}\SpecialCharTok{$}\NormalTok{final\_state,}
-      \AttributeTok{trace         =}\NormalTok{ out}\SpecialCharTok{$}\NormalTok{trace}
+    \AttributeTok{expected\_cost =}\NormalTok{ out}\SpecialCharTok{$}\NormalTok{expected\_cost,}
+    \AttributeTok{expected\_eff  =}\NormalTok{ out}\SpecialCharTok{$}\NormalTok{expected\_eff,}
+    \AttributeTok{terminal      =}\NormalTok{ out}\SpecialCharTok{$}\NormalTok{final\_state,}
+    \AttributeTok{trace         =}\NormalTok{ out}\SpecialCharTok{$}\NormalTok{trace,}
+    \AttributeTok{time\_elapsed  =}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{n\_cycles}
 \NormalTok{  )}
 \NormalTok{\}}
 
 \NormalTok{run\_model.DecisionTree }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(model, ...) \{}
 \NormalTok{  pathways }\OtherTok{\textless{}{-}} \FunctionTok{calculate\_pathways}\NormalTok{(model}\SpecialCharTok{$}\NormalTok{data)}
   
+\NormalTok{  start\_cycle }\OtherTok{\textless{}{-}} \FunctionTok{ifelse}\NormalTok{(}\FunctionTok{is.null}\NormalTok{(model}\SpecialCharTok{$}\NormalTok{start\_cycle), }\DecValTok{0}\NormalTok{, model}\SpecialCharTok{$}\NormalTok{start\_cycle)}
+\NormalTok{  discount\_factor }\OtherTok{\textless{}{-}} \DecValTok{1} \SpecialCharTok{/}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{+}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{discount\_rate)}\SpecialCharTok{\^{}}\NormalTok{start\_cycle}
+  
   \FunctionTok{list}\NormalTok{(}
-      \AttributeTok{expected\_cost =} \FunctionTok{sum}\NormalTok{(pathways}\SpecialCharTok{$}\NormalTok{prob }\SpecialCharTok{*}\NormalTok{ pathways}\SpecialCharTok{$}\NormalTok{cost),}
-      \AttributeTok{expected\_eff  =} \FunctionTok{sum}\NormalTok{(pathways}\SpecialCharTok{$}\NormalTok{prob }\SpecialCharTok{*}\NormalTok{ pathways}\SpecialCharTok{$}\NormalTok{eff),}
-      \AttributeTok{path\_results  =}\NormalTok{ pathways}
+    \AttributeTok{expected\_cost =} \FunctionTok{sum}\NormalTok{(pathways}\SpecialCharTok{$}\NormalTok{prob }\SpecialCharTok{*}\NormalTok{ pathways}\SpecialCharTok{$}\NormalTok{cost) }\SpecialCharTok{*}\NormalTok{ discount\_factor,}
+    \AttributeTok{expected\_eff  =} \FunctionTok{sum}\NormalTok{(pathways}\SpecialCharTok{$}\NormalTok{prob }\SpecialCharTok{*}\NormalTok{ pathways}\SpecialCharTok{$}\NormalTok{eff) }\SpecialCharTok{*}\NormalTok{ discount\_factor,}
+    \AttributeTok{path\_results  =}\NormalTok{ pathways,}
+    \AttributeTok{time\_elapsed  =} \DecValTok{0}
 \NormalTok{  )}
 \NormalTok{\}}
 \end{Highlighting}
@@ -932,7 +939,7 @@ the subsequent model, as defined by the class of the first argument.
 \NormalTok{    tree }\OtherTok{\textless{}{-}}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{data}
 \NormalTok{    root\_idx }\OtherTok{\textless{}{-}} \FunctionTok{which}\NormalTok{(}
 \NormalTok{      tree}\SpecialCharTok{$}\NormalTok{from }\SpecialCharTok{==} \StringTok{"root"} \SpecialCharTok{\&} 
-\NormalTok{      tree}\SpecialCharTok{$}\NormalTok{to }\SpecialCharTok{\%in\%} \FunctionTok{names}\NormalTok{(end\_states))}
+\NormalTok{        tree}\SpecialCharTok{$}\NormalTok{to }\SpecialCharTok{\%in\%} \FunctionTok{names}\NormalTok{(end\_states))}
 \NormalTok{    tree}\SpecialCharTok{$}\NormalTok{prob[root\_idx] }\OtherTok{\textless{}{-}}\NormalTok{ end\_states[tree}\SpecialCharTok{$}\NormalTok{to[root\_idx]]}
 \NormalTok{    model}\SpecialCharTok{$}\NormalTok{data }\OtherTok{\textless{}{-}}\NormalTok{ tree}
 \NormalTok{  \}}
@@ -951,12 +958,23 @@ methods of \texttt{run\_model()} and \texttt{update\_model()}.
 \begin{Highlighting}[]
 \NormalTok{run\_model.CombinedModel }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(model, ...) \{}
 \NormalTok{  results }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{()}
+\NormalTok{  current\_time }\OtherTok{\textless{}{-}} \DecValTok{0}  \CommentTok{\# initialise internal clock}
+  
   \ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \FunctionTok{seq\_along}\NormalTok{(model)) \{}
 \NormalTok{    curr\_model }\OtherTok{\textless{}{-}}\NormalTok{ model[[i]]}
+    
+    \CommentTok{\# stamps model with current time}
+\NormalTok{    curr\_model}\SpecialCharTok{$}\NormalTok{start\_cycle }\OtherTok{\textless{}{-}}\NormalTok{ current\_time}
+    
     \ControlFlowTok{if}\NormalTok{ (i }\SpecialCharTok{\textgreater{}} \DecValTok{1}\NormalTok{) \{}
 \NormalTok{      curr\_model }\OtherTok{\textless{}{-}} \FunctionTok{update\_model}\NormalTok{(curr\_model, results[[i }\SpecialCharTok{{-}} \DecValTok{1}\NormalTok{]])}
 \NormalTok{    \}}
-\NormalTok{    results[[i]] }\OtherTok{\textless{}{-}} \FunctionTok{run\_model}\NormalTok{(curr\_model)}
+
+\NormalTok{    res }\OtherTok{\textless{}{-}} \FunctionTok{run\_model}\NormalTok{(curr\_model)}
+\NormalTok{    results[[i]] }\OtherTok{\textless{}{-}}\NormalTok{ res}
+    
+    \CommentTok{\# advance clock using self{-}reported elapsed time}
+\NormalTok{    current\_time }\OtherTok{\textless{}{-}}\NormalTok{ current\_time }\SpecialCharTok{+}\NormalTok{ res}\SpecialCharTok{$}\NormalTok{time\_elapsed}
 \NormalTok{  \}}
 \NormalTok{  results}
 \NormalTok{\}}
@@ -976,14 +994,18 @@ and episode values.
 \begin{Highlighting}[]
 \CommentTok{\# Define the grid of parameters}
 \NormalTok{time\_horizon }\OtherTok{\textless{}{-}} \DecValTok{20}
-\NormalTok{t\_between\_screens }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{, }\DecValTok{5}\NormalTok{, }\DecValTok{10}\NormalTok{, }\DecValTok{15}\NormalTok{, }\DecValTok{20}\NormalTok{)}
-\NormalTok{num\_screens }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DecValTok{2}\NormalTok{, }\DecValTok{3}\NormalTok{, }\DecValTok{4}\NormalTok{, }\DecValTok{5}\NormalTok{, }\DecValTok{10}\NormalTok{)}
+\NormalTok{t\_between\_screens }\OtherTok{\textless{}{-}} \DecValTok{1}\SpecialCharTok{:}\DecValTok{10}
+\NormalTok{num\_screens }\OtherTok{\textless{}{-}} \DecValTok{1}\SpecialCharTok{:}\DecValTok{10}
+\CommentTok{\# t\_between\_screens \textless{}{-} c(2, 5, 10, 15, 20)}
+\CommentTok{\# num\_screens \textless{}{-} c(1, 2, 3, 4, 5, 10)}
+\CommentTok{\# Set your new discount rate}
+\NormalTok{discount\_rate }\OtherTok{\textless{}{-}} \FloatTok{0.035}
 \end{Highlighting}
 \end{Shaded}
 
-The decision tree data are defined as a \texttt{tribble()} which allows
-us to write it in the same format that it will be printed for clearer
-code (\textbf{?@fig-code-input-dt}).
+The decision tree data are defined as a \texttt{tribble()} from the
+\emph{tibble} package which allows us to write it in the same format
+that it will be printed for clearer code (\textbf{?@fig-code-input-dt}).
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -1013,10 +1035,10 @@ The Markov model transition probability matrix is defined in
 \NormalTok{states }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
   \StringTok{"Healthy"}\NormalTok{, }\StringTok{"Pre\_clinical\_Disease"}\NormalTok{, }\StringTok{"Disease"}\NormalTok{, }\StringTok{"Treated"}\NormalTok{, }\StringTok{"Death\_from\_Disease"}\NormalTok{, }
   \StringTok{"Other\_Cause\_Death"}\NormalTok{)}
- 
+
 \NormalTok{trans\_mat }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}
   \FunctionTok{c}\NormalTok{(}
-\CommentTok{\#    H     P     D     T     DD    OCD}
+    \CommentTok{\#    H     P     D     T     DD    OCD}
     \FloatTok{0.90}\NormalTok{, }\FloatTok{0.05}\NormalTok{, }\FloatTok{0.00}\NormalTok{, }\FloatTok{0.00}\NormalTok{, }\FloatTok{0.00}\NormalTok{, }\FloatTok{0.05}\NormalTok{, }\CommentTok{\# Healthy (H)}
     \FloatTok{0.00}\NormalTok{, }\FloatTok{0.65}\NormalTok{, }\FloatTok{0.20}\NormalTok{, }\FloatTok{0.00}\NormalTok{, }\FloatTok{0.10}\NormalTok{, }\FloatTok{0.05}\NormalTok{, }\CommentTok{\# Pre{-}clinical Disease (P)}
     \FloatTok{0.00}\NormalTok{, }\FloatTok{0.00}\NormalTok{, }\FloatTok{0.60}\NormalTok{, }\FloatTok{0.20}\NormalTok{, }\FloatTok{0.20}\NormalTok{, }\FloatTok{0.00}\NormalTok{, }\CommentTok{\# Clinical Disease (D)}
@@ -1094,8 +1116,7 @@ straightforward to run the analysis inside of a loop over the scenarios.
 \CommentTok{\# Loop through scenarios and execute the unified framework}
 
 \NormalTok{all\_results }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{()}
-\NormalTok{dt }\OtherTok{\textless{}{-}} \FunctionTok{DecisionTree}\NormalTok{(decision\_tree)}
-\NormalTok{scenario\_count }\OtherTok{\textless{}{-}} \DecValTok{1}
+\NormalTok{dt }\OtherTok{\textless{}{-}} \FunctionTok{DecisionTree}\NormalTok{(decision\_tree, }\AttributeTok{disc\_rate =}\NormalTok{ discount\_rate)}
 
 \ControlFlowTok{for}\NormalTok{ (t\_val }\ControlFlowTok{in}\NormalTok{ t\_between\_screens) \{}
 \NormalTok{  mm\_scenario }\OtherTok{\textless{}{-}} 
@@ -1104,30 +1125,34 @@ straightforward to run the analysis inside of a loop over the scenarios.
                 \AttributeTok{utils =}\NormalTok{ util\_vec,}
                 \AttributeTok{init\_probs =}\NormalTok{ init\_pop,}
                 \AttributeTok{mapping =}\NormalTok{ mapping,}
-                \AttributeTok{n\_cycles =}\NormalTok{ t\_val)}
-\NormalTok{  pair\_model\_scenario }\OtherTok{\textless{}{-}} 
-    \FunctionTok{CombinedModel}\NormalTok{(dt, mm\_scenario)}
+                \AttributeTok{n\_cycles =}\NormalTok{ t\_val,}
+                \AttributeTok{disc\_rate =}\NormalTok{ discount\_rate)}
   
   \ControlFlowTok{for}\NormalTok{ (n\_scr }\ControlFlowTok{in}\NormalTok{ num\_screens) \{}
-\NormalTok{    screening\_submodels }\OtherTok{\textless{}{-}} 
-      \FunctionTok{rep}\NormalTok{(pair\_model\_scenario, n\_scr)}
-\NormalTok{    screening\_model }\OtherTok{\textless{}{-}} 
-      \FunctionTok{do.call}\NormalTok{(CombinedModel, }
-              \AttributeTok{args =}\NormalTok{ screening\_submodels)}
-\NormalTok{    results\_scenario }\OtherTok{\textless{}{-}} 
-      \FunctionTok{run\_model}\NormalTok{(screening\_model)}
-\NormalTok{    result\_label }\OtherTok{\textless{}{-}} 
-      \FunctionTok{paste0}\NormalTok{(}\StringTok{"t\_between\_"}\NormalTok{, t\_val, }
-             \StringTok{"\_screens\_"}\NormalTok{, n\_scr)}
+\NormalTok{    total\_screen\_time }\OtherTok{\textless{}{-}}\NormalTok{ n\_scr }\SpecialCharTok{*}\NormalTok{ t\_val}
     
-    \CommentTok{\# append results}
+    \CommentTok{\# Filter out impossible combinations that}
+    \CommentTok{\# exceed the 20{-}year time horizon}
+    \ControlFlowTok{if}\NormalTok{ (total\_screen\_time }\SpecialCharTok{\textgreater{}}\NormalTok{ time\_horizon) }\ControlFlowTok{next}
+    
+\NormalTok{    submodels }\OtherTok{\textless{}{-}} \FunctionTok{rep}\NormalTok{(}\FunctionTok{list}\NormalTok{(dt, mm\_scenario), n\_scr)}
+    
+\NormalTok{    t\_remain }\OtherTok{\textless{}{-}}\NormalTok{ time\_horizon }\SpecialCharTok{{-}}\NormalTok{ total\_screen\_time}
+    \ControlFlowTok{if}\NormalTok{ (t\_remain }\SpecialCharTok{\textgreater{}} \DecValTok{0}\NormalTok{) \{}
+\NormalTok{      submodels[[}\FunctionTok{length}\NormalTok{(submodels)]]}\SpecialCharTok{$}\NormalTok{n\_cycles }\OtherTok{\textless{}{-}}\NormalTok{ t\_val }\SpecialCharTok{+}\NormalTok{ t\_remain}
+\NormalTok{    \}}
+    
+\NormalTok{    screening\_model }\OtherTok{\textless{}{-}} \FunctionTok{do.call}\NormalTok{(CombinedModel, }\AttributeTok{args =}\NormalTok{ submodels)}
+    
+\NormalTok{    results\_scenario }\OtherTok{\textless{}{-}} \FunctionTok{run\_model}\NormalTok{(screening\_model)}
+    
+\NormalTok{    result\_label }\OtherTok{\textless{}{-}} \FunctionTok{paste0}\NormalTok{(}\StringTok{"t\_between\_"}\NormalTok{, t\_val, }\StringTok{"\_screens\_"}\NormalTok{, n\_scr)}
+    
 \NormalTok{    all\_results[[result\_label]] }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{(}
       \AttributeTok{t\_between\_screens =}\NormalTok{ t\_val,}
-      \AttributeTok{num\_screens =}\NormalTok{ n\_scr,}
-      \AttributeTok{results =}\NormalTok{ results\_scenario)}
-
-    \CommentTok{\# increment counter}
-\NormalTok{    scenario\_count }\OtherTok{\textless{}{-}}\NormalTok{ scenario\_count }\SpecialCharTok{+} \DecValTok{1}
+      \AttributeTok{num\_screens       =}\NormalTok{ n\_scr,}
+      \AttributeTok{results           =}\NormalTok{ results\_scenario}
+\NormalTok{    )}
 \NormalTok{  \}}
 \NormalTok{\}}
 \end{Highlighting}
@@ -1255,10 +1280,8 @@ errors common in manual imperative scripts.
 
 }
 
-\caption{\label{fig-ce-plot}Cost-effectiveness plot for a range of
-screening strategies; screening intervals of 2, 5, 10, 15, 20 years
-(different colours), and total number of screening episodes 1, 2, 3, 4,
-5, 10 (points along curves).}
+\caption{\label{fig-ce-plot}Cost-effectiveness plot for screening
+intervals of 1 to 5 years, with all screening episodes numbered.}
 
 \end{figure}%
 

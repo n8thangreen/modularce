@@ -157,9 +157,9 @@ For example, a DT might output a simple vector of patient proportions, but a MM 
 
 ```r
 modelfun.modelclass <- function(x, ...) {
-  # 1. Translate incoming data into a format the model needs
-  # 2. Execute the model
-  # 3. Translate results back into a standardized output format
+# 1. Translate incoming data into a format the model needs
+# 2. Execute the model
+# 3. Translate results back into a standardized output format
 }
 ```
 
@@ -226,9 +226,10 @@ The framework leverages the S3 methodology to seamlessly transition patient coho
 The class constructor functions for a decision tree and a Markov model are:
 
 ```{r}
-DecisionTree <- function(data) {
+DecisionTree <- function(data, disc_rate = 0.035) {
   structure(
-    list(data = data),
+    list(data = data,
+         discount_rate = disc_rate),
     class = c("DecisionTree", "Model"))
 }
 
@@ -286,24 +287,30 @@ run_model.MarkovModel <- function(model, ...) {
     cost_vec      = model$cost_vector,
     util_vec      = model$util_vector,
     n_cycles      = model$n_cycles,
-    discount_rate = model$discount_rate
+    discount_rate = model$discount_rate,
+    start_cycle   = ifelse(is.null(model$start_cycle), 0, model$start_cycle)
   )
   
   list(
-      expected_cost = out$expected_cost,
-      expected_eff  = out$expected_eff,
-      terminal      = out$final_state,
-      trace         = out$trace
+    expected_cost = out$expected_cost,
+    expected_eff  = out$expected_eff,
+    terminal      = out$final_state,
+    trace         = out$trace,
+    time_elapsed  = model$n_cycles
   )
 }
 
 run_model.DecisionTree <- function(model, ...) {
   pathways <- calculate_pathways(model$data)
   
+  start_cycle <- ifelse(is.null(model$start_cycle), 0, model$start_cycle)
+  discount_factor <- 1 / (1 + model$discount_rate)^start_cycle
+  
   list(
-      expected_cost = sum(pathways$prob * pathways$cost),
-      expected_eff  = sum(pathways$prob * pathways$eff),
-      path_results  = pathways
+    expected_cost = sum(pathways$prob * pathways$cost) * discount_factor,
+    expected_eff  = sum(pathways$prob * pathways$eff) * discount_factor,
+    path_results  = pathways,
+    time_elapsed  = 0
   )
 }
 ```
@@ -337,7 +344,7 @@ update_model.DecisionTree <- function(model, prev_result) {
     tree <- model$data
     root_idx <- which(
       tree$from == "root" & 
-      tree$to %in% names(end_states))
+        tree$to %in% names(end_states))
     tree$prob[root_idx] <- end_states[tree$to[root_idx]]
     model$data <- tree
   }
@@ -350,12 +357,23 @@ The final key element is the orchestrator function. This higher-level function t
 ```{r}
 run_model.CombinedModel <- function(model, ...) {
   results <- list()
+  current_time <- 0  # initialise internal clock
+  
   for (i in seq_along(model)) {
     curr_model <- model[[i]]
+    
+    # stamps model with current time
+    curr_model$start_cycle <- current_time
+    
     if (i > 1) {
       curr_model <- update_model(curr_model, results[[i - 1]])
     }
-    results[[i]] <- run_model(curr_model)
+
+    res <- run_model(curr_model)
+    results[[i]] <- res
+    
+    # advance clock using self-reported elapsed time
+    current_time <- current_time + res$time_elapsed
   }
   results
 }
@@ -368,11 +386,15 @@ Now that the function preparatory code is complete, the input data as defined in
 ```{r}
 # Define the grid of parameters
 time_horizon <- 20
-t_between_screens <- c(2, 5, 10, 15, 20)
-num_screens <- c(1, 2, 3, 4, 5, 10)
+t_between_screens <- 1:10
+num_screens <- 1:10
+# t_between_screens <- c(2, 5, 10, 15, 20)
+# num_screens <- c(1, 2, 3, 4, 5, 10)
+# Set your new discount rate
+discount_rate <- 0.035
 ```
 
-The decision tree data are defined as a `tribble()` which allows us to write it in the same format that it will be printed for clearer code (@fig-code-input-dt).
+The decision tree data are defined as a `tribble()` from the *tibble* package which allows us to write it in the same format that it will be printed for clearer code (@fig-code-input-dt).
 
 ```{r}
 #| label: fig-code-input-dt
@@ -404,10 +426,10 @@ The Markov model transition probability matrix is defined in @fig-code-input-mm.
 states <- c(
   "Healthy", "Pre_clinical_Disease", "Disease", "Treated", "Death_from_Disease", 
   "Other_Cause_Death")
- 
+
 trans_mat <- matrix(
   c(
-#    H     P     D     T     DD    OCD
+    #    H     P     D     T     DD    OCD
     0.90, 0.05, 0.00, 0.00, 0.00, 0.05, # Healthy (H)
     0.00, 0.65, 0.20, 0.00, 0.10, 0.05, # Pre-clinical Disease (P)
     0.00, 0.00, 0.60, 0.20, 0.20, 0.00, # Clinical Disease (D)
@@ -477,7 +499,8 @@ markov_model <- function(start_pop,
                          cost_vec,
                          util_vec,
                          n_cycles = 2,
-                         discount_rate = 0.035) {
+                         discount_rate = 0.035,
+                         start_cycle = 0) {
   n_states <- ncol(trans_mat)
   s_names  <- colnames(trans_mat)
   
@@ -485,26 +508,28 @@ markov_model <- function(start_pop,
     names(start_pop) <- s_names
   }
   
-  # Cohort trace matrix: rows = cycles (0 to n_cycles), cols = states
+  # trace matrix has n_cycles + 1 rows (baseline + n transitions)
   trace <- matrix(NA, nrow = n_cycles + 1, ncol = n_states, 
-                  dimnames = list(cycle = 0:n_cycles, state = s_names))
+                  dimnames = list(paste0("cycle_", 0:n_cycles), s_names))
   trace[1, ] <- start_pop
   
   for (t in 1:n_cycles) {
     trace[t + 1, ] <- trace[t, ] %*% trans_mat
   }
   
-  # Discount factors
-  disc_vec <- 1 / (1 + discount_rate)^(0:n_cycles)
+  # Apply continuous discounting for the true elapsed time (t=1 to t=n)
+  times <- (start_cycle + 1):(start_cycle + n_cycles)
+  disc_vec <- 1 / (1 + discount_rate)^times
   
-  cycle_costs <- (trace %*% cost_vec) * disc_vec
-  cycle_eff   <- (trace %*% util_vec) * disc_vec
+  # Exclude baseline row (trace[1,]) from reward accumulation
+  cycle_costs <- (trace[-1, , drop = FALSE] %*% cost_vec)[, 1] * disc_vec
+  cycle_qalys <- (trace[-1, , drop = FALSE] %*% util_vec)[, 1] * disc_vec
   
   list(
-    final_state   = setNames(as.numeric(trace[n_cycles + 1, ]), s_names),
     trace         = trace,
+    final_state   = setNames(as.numeric(trace[n_cycles + 1, ]), s_names),
     expected_cost = sum(cycle_costs),
-    expected_eff  = sum(cycle_eff)
+    expected_eff  = sum(cycle_qalys)
   )
 }
 ```
@@ -585,8 +610,7 @@ Having established the simulation code and input data, it is straightforward to 
 # Loop through scenarios and execute the unified framework
 
 all_results <- list()
-dt <- DecisionTree(decision_tree)
-scenario_count <- 1
+dt <- DecisionTree(decision_tree, disc_rate = discount_rate)
 
 for (t_val in t_between_screens) {
   mm_scenario <- 
@@ -595,30 +619,34 @@ for (t_val in t_between_screens) {
                 utils = util_vec,
                 init_probs = init_pop,
                 mapping = mapping,
-                n_cycles = t_val)
-  pair_model_scenario <- 
-    CombinedModel(dt, mm_scenario)
+                n_cycles = t_val,
+                disc_rate = discount_rate)
   
   for (n_scr in num_screens) {
-    screening_submodels <- 
-      rep(pair_model_scenario, n_scr)
-    screening_model <- 
-      do.call(CombinedModel, 
-              args = screening_submodels)
-    results_scenario <- 
-      run_model(screening_model)
-    result_label <- 
-      paste0("t_between_", t_val, 
-             "_screens_", n_scr)
+    total_screen_time <- n_scr * t_val
     
-    # append results
+    # Filter out impossible combinations that
+    # exceed the 20-year time horizon
+    if (total_screen_time > time_horizon) next
+    
+    submodels <- rep(list(dt, mm_scenario), n_scr)
+    
+    t_remain <- time_horizon - total_screen_time
+    if (t_remain > 0) {
+      submodels[[length(submodels)]]$n_cycles <- t_val + t_remain
+    }
+    
+    screening_model <- do.call(CombinedModel, args = submodels)
+    
+    results_scenario <- run_model(screening_model)
+    
+    result_label <- paste0("t_between_", t_val, "_screens_", n_scr)
+    
     all_results[[result_label]] <- list(
       t_between_screens = t_val,
-      num_screens = n_scr,
-      results = results_scenario)
-
-    # increment counter
-    scenario_count <- scenario_count + 1
+      num_screens       = n_scr,
+      results           = results_scenario
+    )
   }
 }
 ```
@@ -717,24 +745,27 @@ Importantly, the smooth and mathematically predictable progression of these curv
 
 ```{r}
 #| label: fig-ce-plot
-#| fig-cap: "Cost-effectiveness plot for a range of screening strategies; screening intervals of 2, 5, 10, 15, 20 years (different colours), and total number of screening episodes 1, 2, 3, 4, 5, 10 (points along curves)."
+#| fig-cap: "Cost-effectiveness plot for screening intervals of 1 to 5 years, with all screening episodes numbered."
 #| fig-width: 8
 #| fig-height: 5
 #| echo: false
 
+# 1. Build the data and filter for intervals 1 through 5
 ce_data <- dplyr::tibble(
-  t_interval = factor(vapply(all_results, \(x) x$t_between_screens, numeric(1)), levels = c(2, 5, 10, 15, 20)),
+  t_interval = factor(vapply(all_results, \(x) x$t_between_screens, numeric(1))),
   n_screens  = vapply(all_results, \(x) x$num_screens, numeric(1)),
   cost       = vapply(all_results, \(x) get_costs(x$results), numeric(1)),
   qalys      = vapply(all_results, \(x) get_effects(x$results), numeric(1))
-)
+) |> 
+  dplyr::filter(t_interval %in% as.character(1:5))
 
 ggplot(ce_data, aes(x = qalys, y = cost, color = t_interval, group = t_interval)) +
-  geom_point(size = 3) +
+  geom_point(size = 2.5) +
   geom_path(linewidth = 1) +
+  # 2. Number every point by passing the default data
   geom_text(aes(label = n_screens), vjust = -0.8, size = 3.2, show.legend = FALSE) +
   scale_color_viridis_d(name = "Screening Interval\n(Years)") +
-  scale_x_continuous(breaks = seq(0, 20, by = 2)) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 8)) +
   labs(
     x = "Total Health Gain (QALYs)",
     y = "Total Expected Cost (£)"
@@ -742,7 +773,8 @@ ggplot(ce_data, aes(x = qalys, y = cost, color = t_interval, group = t_interval)
   theme_minimal(base_size = 12) +
   theme(
     panel.grid.minor = element_blank(),
-    plot.title       = element_text(face = "bold")
+    plot.title       = element_text(face = "bold"),
+    legend.position  = "right"
   )
 ```
 
