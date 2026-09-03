@@ -742,7 +742,7 @@ Figure&nbsp;4: Decision tree model component diagram for the screening example.
 <p>Even within the proposed architecture there are several subjective design decisions to make, which can depend on the specifics of the problem at hand. One design choice is where in the code to perform the linking of models. One option is to chain the models together when we create them or another option is to do this at the same time as running the model. There are pros and cons to each approach.</p>
 <p>Another issue is to do with the generalisability of linking models. Should the code use the information about which type of model is being linked from (source) and linked to (target)? In an OOP framework this would require something called <em>double dispatch</em> which is not the original intention of S3 in R but can be manufactured using it and is implemented in packages such as <em>vctrs</em> <span class="citation" data-cites="vctrs2026">(<a href="#ref-vctrs2026" role="doc-biblioref">Wickham, Henry, and Vaughan 2026</a>)</span>. Taking into account these considerations, in our case study example we have placed the linking logic within the model running function. We have also assumed that given a target model, we then know what the source model is. This is reasonable in our context and keeps the code clean for demonstration purposes. An alternative version of our code using the double dispatch approach employed by <em>vctrs</em> is also available in the supplementary material. The newer and less adopted S7 OOP system in R does natively support multiple dispatch which could elegantly solve the problem with a little more advanced code. We provide a version of the code in the supplementary material.</p>
 <p>Our decision to utilize an S3-based orchestrator to link sequential model components aligns with established best practices in modern R software engineering. For instance, the <em>tidymodels</em> ecosystem (specifically the <em>workflows</em> and <em>stacks</em> packages) relies heavily on S3 generics to handle the sequential passing of data between preprocessing steps, individual models, and ensemble meta-models.</p>
-<p>A Unified Markup Language (UML) diagram of the code structure is given in Appendix <a href="#fig-UML" class="quarto-xref">Figure&nbsp;7</a>. This shows how all of the functions are related to each other.</p>
+<p>A Unified Markup Language (UML) diagram of the code structure is given in Appendix <a href="#fig-UML" class="quarto-xref">Figure&nbsp;10</a>. This shows how all of the functions are related to each other.</p>
 </section>
 </section>
 <section id="results" class="level1" data-number="7">
@@ -804,6 +804,21 @@ Figure&nbsp;6: Cost-effectiveness plot for screening intervals of 1 to 5 years, 
 </section>
 <section id="changes-in-model-and-data" class="level1" data-number="8">
 <h1 data-number="8"><span class="header-section-number">8</span> Changes in Model and Data</h1>
+<p>As for the previous example, the PSM engine it assumed a blackbox for our purposes so is not shown here but all code is avaialable in the GitHub repository.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-natural-history" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-natural-history-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="manuscript_files/figure-html/fig-natural-history-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-natural-history-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7: Natural history state occupancy with fitted PartSA survival curves (PFS and OS).
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
 <section id="submodel-substitution" class="level3" data-number="8.0.1">
 <h3 data-number="8.0.1" class="anchored" data-anchor-id="submodel-substitution"><span class="header-section-number">8.0.1</span> Submodel substitution</h3>
 <p>From a Markov model to a partitioned survival model (PSM).</p>
@@ -815,60 +830,149 @@ Figure&nbsp;6: Cost-effectiveness plot for screening intervals of 1 to 5 years, 
 <span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>                        <span class="at">discount_rate =</span> <span class="fl">0.035</span>) {</span>
 <span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">structure</span>(</span>
 <span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list</span>(</span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">surv_pfs     =</span> surv_pfs,     <span class="co"># parametric survival curves</span></span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">surv_os      =</span> surv_os,</span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">cost_vector  =</span> cost_vector,</span>
-<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>      <span class="at">qaly_vector  =</span> qaly_vector,</span>
-<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>      <span class="at">mapping      =</span> mapping,      <span class="co"># links tree terminal nodes to baseline survival risk</span></span>
-<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>      <span class="at">time_horizon =</span> time_horizon,</span>
-<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>      <span class="at">discount_rate =</span> discount_rate</span>
-<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">class =</span> <span class="fu">c</span>(<span class="st">"PartSAModel"</span>, <span class="st">"Model"</span>)</span>
-<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">surv_pfs       =</span> surv_pfs,     <span class="co"># parametric survival curves</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">surv_os        =</span> surv_os,</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">cost_vector    =</span> cost_vector,</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>      <span class="at">qaly_vector    =</span> qaly_vector,</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>      <span class="at">mapping        =</span> mapping,      <span class="co"># links tree terminal nodes to baseline survival risk</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>      <span class="at">time_horizon   =</span> time_horizon,</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>      <span class="at">discount_rate  =</span> discount_rate,</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>      <span class="at">start_cycle    =</span> <span class="dv">0</span>,</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>      <span class="at">treated_prev   =</span> <span class="dv">0</span>,</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>      <span class="at">untreated_prev =</span> <span class="dv">1</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">class =</span> <span class="fu">c</span>(<span class="st">"PartSAModel"</span>, <span class="st">"Model"</span>)</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>S3 methods</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' S3 update method: Ingests Decision Tree outputs into PartSA baseline parameters</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>update_model.PartSAModel <span class="ot">&lt;-</span> <span class="cf">function</span>(model, result) {</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Map tree probabilities to adjust scale or </span></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># baseline hazard for each treatment arm</span></span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># dummy baseline weight vector</span></span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>  model<span class="sc">$</span>baseline_weights <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">1</span>, <span class="fu">length</span>(model<span class="sc">$</span>mapping))</span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  model</span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' S3 update method: Ingests Decision Tree outputs</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co">#' into PartSA baseline parameters</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>update_model.PartSAModel <span class="ot">&lt;-</span> <span class="cf">function</span>(model, result) {</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(result<span class="sc">$</span>path_results) <span class="sc">&amp;&amp;</span> <span class="sc">!</span><span class="fu">is.null</span>(model<span class="sc">$</span>mapping)) {</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    paths <span class="ot">&lt;-</span> result<span class="sc">$</span>path_results</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    paths<span class="sc">$</span>state <span class="ot">&lt;-</span> model<span class="sc">$</span>mapping[paths<span class="sc">$</span>terminal_node]</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    model<span class="sc">$</span>treated_prev <span class="ot">&lt;-</span> <span class="fu">sum</span>(paths<span class="sc">$</span>prob[paths<span class="sc">$</span>state <span class="sc">==</span> <span class="st">"Treated"</span>])</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>    model<span class="sc">$</span>untreated_prev <span class="ot">&lt;-</span> <span class="fu">sum</span>(paths<span class="sc">$</span>prob[paths<span class="sc">$</span>state <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Healthy"</span>, <span class="st">"Pre_clinical_Disease"</span>, <span class="st">"Disease"</span>)])</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>  model</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' S3 runner method: Solves the area under the curves</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>run_model.PartSAModel <span class="ot">&lt;-</span> <span class="cf">function</span>(model) {</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Evaluate partitioned survival areas (PFS, OS - PFS, 1 - OS)</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">run_partsa_engine</span>(</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">pfs_fit    =</span> model<span class="sc">$</span>surv_pfs, </span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">os_fit     =</span> model<span class="sc">$</span>surv_os, </span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">weights    =</span> model<span class="sc">$</span>baseline_weights,</span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">horizon    =</span> model<span class="sc">$</span>time_horizon</span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">structure</span>(</span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list</span>(</span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>      <span class="at">expected_cost =</span> <span class="fu">sum</span>(out<span class="sc">$</span>state_costs <span class="sc">*</span> model<span class="sc">$</span>cost_vector),</span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>      <span class="at">expected_eff  =</span> <span class="fu">sum</span>(out<span class="sc">$</span>state_qalys <span class="sc">*</span> model<span class="sc">$</span>qaly_vector),</span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>      <span class="at">survival_mesh =</span> out<span class="sc">$</span>mesh</span>
-<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">class =</span> <span class="fu">c</span>(<span class="st">"output"</span>, <span class="fu">class</span>(model))</span>
-<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Evaluate partitioned survival areas </span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># (PFS, OS - PFS, 1 - OS)</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">run_partsa_engine</span>(</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">pfs_fit        =</span> model<span class="sc">$</span>surv_pfs, </span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">os_fit         =</span> model<span class="sc">$</span>surv_os, </span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">weights        =</span> model<span class="sc">$</span>baseline_weights,</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">horizon        =</span> model<span class="sc">$</span>time_horizon,</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">start_cycle    =</span> model<span class="sc">$</span>start_cycle,</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">treated_prev   =</span> model<span class="sc">$</span>treated_prev,</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">untreated_prev =</span> model<span class="sc">$</span>untreated_prev</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">structure</span>(</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list</span>(</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>      <span class="at">expected_cost =</span> <span class="fu">sum</span>(out<span class="sc">$</span>state_costs <span class="sc">*</span> model<span class="sc">$</span>cost_vector),</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>      <span class="at">expected_eff  =</span> <span class="fu">sum</span>(out<span class="sc">$</span>state_qalys <span class="sc">*</span> model<span class="sc">$</span>qaly_vector),</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>      <span class="at">survival_mesh =</span> out<span class="sc">$</span>mesh,</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>      <span class="at">trace         =</span> out<span class="sc">$</span>trace,</span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>      <span class="at">terminal      =</span> <span class="fu">setNames</span>(<span class="fu">as.numeric</span>(out<span class="sc">$</span>trace[<span class="fu">nrow</span>(out<span class="sc">$</span>trace), ]), <span class="fu">colnames</span>(out<span class="sc">$</span>trace)),</span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>      <span class="at">time_elapsed  =</span> model<span class="sc">$</span>time_horizon</span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">class =</span> <span class="fu">c</span>(<span class="st">"output"</span>, <span class="fu">class</span>(model))</span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Analysis</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Swap Markov for PartSA without touching runner code:</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>model_c <span class="ot">&lt;-</span> <span class="fu">PartSAModel</span>(<span class="at">surv_pfs =</span> fit_pfs, <span class="at">surv_os =</span> fit_os, </span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>                       <span class="at">cost_vector =</span> cost_vec, <span class="at">qaly_vector =</span> util_vec, </span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>                       <span class="at">mapping =</span> map_ps)</span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>chain_partsa <span class="ot">&lt;-</span> <span class="fu">CombinedModel</span>(model_a, model_c)</span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Identical orchestration call</span></span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>res_partsa <span class="ot">&lt;-</span> <span class="fu">run_model</span>(chain_partsa)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run the full grid of scenarios using PartSA</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>all_results_ps <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (t_val <span class="cf">in</span> t_between_screens) {</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (n_scr <span class="cf">in</span> num_screens) {</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    total_time <span class="ot">&lt;-</span> n_scr <span class="sc">*</span> t_val</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (total_time <span class="sc">&gt;</span> time_horizon) <span class="cf">next</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    ps_scenario <span class="ot">&lt;-</span> <span class="fu">PartSAModel</span>(</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">surv_pfs =</span> fit_pfs, <span class="at">surv_os =</span> fit_os, </span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">cost_vector =</span> cost_vec, <span class="at">qaly_vector =</span> util_vec, </span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>      <span class="at">mapping =</span> map_ps, <span class="at">time_horizon =</span> t_val, </span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>      <span class="at">discount_rate =</span> discount_rate</span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>    submodels <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="fu">list</span>(dt, ps_scenario), n_scr)</span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>    n_models <span class="ot">&lt;-</span> <span class="fu">length</span>(submodels)</span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>    t_remain <span class="ot">&lt;-</span> time_horizon <span class="sc">-</span> total_time</span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (t_remain <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>      submodels[[n_models]]<span class="sc">$</span>time_horizon <span class="ot">&lt;-</span> t_val <span class="sc">+</span> t_remain</span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a>    ps_chain <span class="ot">&lt;-</span> <span class="fu">do.call</span>(CombinedModel, <span class="at">args =</span> submodels)</span>
+<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>    res_ps <span class="ot">&lt;-</span> <span class="fu">run_model</span>(ps_chain)</span>
+<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>    result_label <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"t_between_"</span>, t_val, <span class="st">"_screens_"</span>, n_scr)</span>
+<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a>    all_results_ps[[result_label]] <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a>      <span class="at">t_between_screens =</span> t_val,</span>
+<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a>      <span class="at">num_screens       =</span> n_scr,</span>
+<span id="cb21-30"><a href="#cb21-30" aria-hidden="true" tabindex="-1"></a>      <span class="at">results           =</span> res_ps</span>
+<span id="cb21-31"><a href="#cb21-31" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb21-32"><a href="#cb21-32" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb21-33"><a href="#cb21-33" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="fig-occupy-combined-ps" class="quarto-layout-panel">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-occupy-combined-ps-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="quarto-layout-row">
+<div class="cell-output-display quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-occupy-combined-ps" style="flex-basis: 100.0%;justify-content: flex-start;">
+<div id="fig-occupy-combined-ps-1" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-subfloat-fig figure">
+<div aria-describedby="fig-occupy-combined-ps-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="manuscript_files/figure-html/fig-occupy-combined-ps-1.png" class="img-fluid figure-img" data-ref-parent="fig-occupy-combined-ps" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-occupy-combined-ps-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(a) 2-yearly screening (10 rounds, 20-year horizon)
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="quarto-layout-row">
+<div class="cell-output-display quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-occupy-combined-ps" style="flex-basis: 100.0%;justify-content: flex-start;">
+<div id="fig-occupy-combined-ps-2" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-subfloat-fig figure">
+<div aria-describedby="fig-occupy-combined-ps-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="manuscript_files/figure-html/fig-occupy-combined-ps-2.png" class="img-fluid figure-img" data-ref-parent="fig-occupy-combined-ps" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-occupy-combined-ps-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(b) 10-yearly screening (2 rounds, 20-year horizon)
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-occupy-combined-ps-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;8: State occupancy plots comparing 2-year and 10-year screening intervals using the PartSA model.
+</figcaption>
+</figure>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-ce-plot-ps" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-ce-plot-ps-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="manuscript_files/figure-html/fig-ce-plot-ps-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-ce-plot-ps-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;9: Cost-effectiveness plot for PartSA screening intervals of 1 to 5 years.
+</figcaption>
+</figure>
+</div>
+</div>
 </div>
 </section>
 <section id="structural-adaptations-via-s3-class-specialisation" class="level3" data-number="8.0.2">
@@ -978,7 +1082,7 @@ Wu, Eric Q., Zheng-Yi Zhou, Jipan Xie, Cinzia Metallo, and Praveen Thokala. 2019
 <img src="UML.png" class="img-fluid figure-img" style="width:100.0%">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-UML-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;7: UML diagram for the decision tree - Markov model code. Inheritance / Generalization is a solid line with a large hollow (unfilled) triangle arrowhead pointing to the parent class in our case the decision tree and Markov model output; Implementation is a dashed line with a large hollow (unfilled) triangle arrowhead pointing to the interface, in our case the specific type of models; Dependency is a dashed line with an open arrowhead, the function on the right hand side of the diagram. The line with the unfilled diamond represents aggregation and “2..*” indicates that there are 2 or more models in <code>CombinedModel</code>.
+Figure&nbsp;10: UML diagram for the decision tree - Markov model code. Inheritance / Generalization is a solid line with a large hollow (unfilled) triangle arrowhead pointing to the parent class in our case the decision tree and Markov model output; Implementation is a dashed line with a large hollow (unfilled) triangle arrowhead pointing to the interface, in our case the specific type of models; Dependency is a dashed line with an open arrowhead, the function on the right hand side of the diagram. The line with the unfilled diamond represents aggregation and “2..*” indicates that there are 2 or more models in <code>CombinedModel</code>.
 </figcaption>
 </figure>
 </div>

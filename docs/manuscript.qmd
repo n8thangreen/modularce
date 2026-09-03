@@ -871,33 +871,67 @@ ggplot2::ggplot() +
 ```{r}
 #| echo: false
 
-run_partsa_engine <- function(pfs_fit, os_fit, weights, horizon) {
-  # Calculate simple area under the curve (AUC) for time in states
-  t <- seq(0, horizon, by = 1)
-  auc_pfs <- sum(pfs_fit(t))
-  auc_os  <- sum(os_fit(t))
+run_partsa_engine <- function(pfs_fit, os_fit, weights, horizon, start_cycle = 0, discount_rate = 0.035, treated_prev = 0, untreated_prev = 1) {
   
-  time_pf   <- auc_pfs
-  time_pd   <- auc_os - auc_pfs
-  time_dead <- horizon - auc_os
+  # Calculate scale factor for untreated pool to adjust for cohort moving into Treated
+  os_at_start <- os_fit(start_cycle)
+  k <- if (os_at_start > 0) untreated_prev / os_at_start else 0
+  
+  # Calculate area under the curve (AUC) for time in states (discounted, right-Riemann sum)
+  if (horizon > 0) {
+    t_reward <- seq(start_cycle + 1, start_cycle + horizon, by = 1)
+    disc_vec <- 1 / (1 + discount_rate)^t_reward
+    
+    auc_pfs <- sum(pfs_fit(t_reward) * k * disc_vec)
+    auc_os  <- sum(os_fit(t_reward) * k * disc_vec)
+    
+    # Treated state decays independently at 0.95 per year
+    t_interval <- seq(1, horizon, by = 1)
+    treated_curve <- treated_prev * (0.95^t_interval)
+    auc_treated <- sum(treated_curve * disc_vec)
+    
+    time_pf   <- auc_pfs
+    time_pd   <- auc_os - auc_pfs
+    time_treated <- auc_treated
+    
+    time_total <- sum(disc_vec)
+    time_dead <- time_total - auc_os - auc_treated
+  } else {
+    time_pf <- 0; time_pd <- 0; time_treated <- 0; time_dead <- 0
+  }
   
   # Map PartSA states to the 6 Markov states
-  # PFS -> Healthy (disease free)
-  # PD -> Diseases
-  # 1 - OS -> Death_from_Disease & Other_Cause_Death
   state_time <- c(
     Healthy              = time_pf,
     Pre_clinical_Disease = time_pd / 2,
     Disease              = time_pd / 2,
-    Treated              = 0,
+    Treated              = time_treated,
     Death_from_Disease   = time_dead / 2,
     Other_Cause_Death    = time_dead / 2
   )
   
+  # Generate trace for state occupancy plotting (undiscounted, includes baseline)
+  t_trace <- seq(start_cycle, start_cycle + horizon, by = 1)
+  t_int_trace <- seq(0, horizon, by = 1)
+  treated_curve_trace <- treated_prev * (0.95^t_int_trace)
+  
+  trace <- matrix(0, nrow = length(t_trace), ncol = 6)
+  colnames(trace) <- c("Healthy", "Pre_clinical_Disease", "Disease", 
+                       "Treated", "Death_from_Disease", "Other_Cause_Death")
+  trace[, "Healthy"]              <- pfs_fit(t_trace) * k
+  trace[, "Pre_clinical_Disease"] <- (os_fit(t_trace) - pfs_fit(t_trace)) / 2 * k
+  trace[, "Disease"]              <- (os_fit(t_trace) - pfs_fit(t_trace)) / 2 * k
+  trace[, "Treated"]              <- treated_curve_trace
+  
+  alive_trace <- trace[, "Healthy"] + trace[, "Pre_clinical_Disease"] + trace[, "Disease"] + trace[, "Treated"]
+  trace[, "Death_from_Disease"]   <- (1 - alive_trace) / 2
+  trace[, "Other_Cause_Death"]    <- (1 - alive_trace) / 2
+  
   list(
     state_costs = state_time,
     state_qalys = state_time,
-    mesh = cbind(PFS = pfs_fit(t), OS = os_fit(t))
+    mesh = cbind(PFS = pfs_fit(t_trace), OS = os_fit(t_trace)),
+    trace = trace
   )
 }
 
@@ -916,13 +950,16 @@ PartSAModel <- function(surv_pfs, surv_os, cost_vector,
                         discount_rate = 0.035) {
   structure(
     list(
-      surv_pfs     = surv_pfs,     # parametric survival curves
-      surv_os      = surv_os,
-      cost_vector  = cost_vector,
-      qaly_vector  = qaly_vector,
-      mapping      = mapping,      # links tree terminal nodes to baseline survival risk
-      time_horizon = time_horizon,
-      discount_rate = discount_rate
+      surv_pfs       = surv_pfs,     # parametric survival curves
+      surv_os        = surv_os,
+      cost_vector    = cost_vector,
+      qaly_vector    = qaly_vector,
+      mapping        = mapping,      # links tree terminal nodes to baseline survival risk
+      time_horizon   = time_horizon,
+      discount_rate  = discount_rate,
+      start_cycle    = 0,
+      treated_prev   = 0,
+      untreated_prev = 1
     ),
     class = c("PartSAModel", "Model")
   )
@@ -935,7 +972,12 @@ S3 methods
 #' S3 update method: Ingests Decision Tree outputs
 #' into PartSA baseline parameters
 update_model.PartSAModel <- function(model, result) {
-  model$baseline_weights <- rep(1, length(model$mapping))
+  if (!is.null(result$path_results) && !is.null(model$mapping)) {
+    paths <- result$path_results
+    paths$state <- model$mapping[paths$terminal_node]
+    model$treated_prev <- sum(paths$prob[paths$state == "Treated"])
+    model$untreated_prev <- sum(paths$prob[paths$state %in% c("Healthy", "Pre_clinical_Disease", "Disease")])
+  }
   model
 }
 ```
@@ -946,17 +988,23 @@ run_model.PartSAModel <- function(model) {
   # Evaluate partitioned survival areas 
   # (PFS, OS - PFS, 1 - OS)
   out <- run_partsa_engine(
-    pfs_fit    = model$surv_pfs, 
-    os_fit     = model$surv_os, 
-    weights    = model$baseline_weights,
-    horizon    = model$time_horizon
+    pfs_fit        = model$surv_pfs, 
+    os_fit         = model$surv_os, 
+    weights        = model$baseline_weights,
+    horizon        = model$time_horizon,
+    start_cycle    = model$start_cycle,
+    treated_prev   = model$treated_prev,
+    untreated_prev = model$untreated_prev
   )
   
   structure(
     list(
       expected_cost = sum(out$state_costs * model$cost_vector),
       expected_eff  = sum(out$state_qalys * model$qaly_vector),
-      survival_mesh = out$mesh
+      survival_mesh = out$mesh,
+      trace         = out$trace,
+      terminal      = setNames(as.numeric(out$trace[nrow(out$trace), ]), colnames(out$trace)),
+      time_elapsed  = model$time_horizon
     ),
     class = c("output", class(model))
   )
@@ -965,16 +1013,112 @@ run_model.PartSAModel <- function(model) {
 
 Analysis
 
-```{r PartSA-analysis}
-# Swap Markov for PartSA
-psm <- PartSAModel(surv_pfs = fit_pfs, surv_os = fit_os, 
-                   cost_vector = cost_vec, qaly_vector = util_vec, 
-                   mapping = map_ps)
+```{r PartSA-grid}
+#| echo: true
 
-screening_model <- CombinedModel(dt, psm)
+# Run the full grid of scenarios using PartSA
+all_results_ps <- list()
+for (t_val in t_between_screens) {
+  for (n_scr in num_screens) {
+    total_time <- n_scr * t_val
+    if (total_time > time_horizon) next
+    
+    ps_scenario <- PartSAModel(
+      surv_pfs = fit_pfs, surv_os = fit_os, 
+      cost_vector = cost_vec, qaly_vector = util_vec, 
+      mapping = map_ps, time_horizon = t_val, 
+      discount_rate = discount_rate
+    )
+    
+    submodels <- rep(list(dt, ps_scenario), n_scr)
+    n_models <- length(submodels)
+    
+    t_remain <- time_horizon - total_time
+    if (t_remain > 0) {
+      submodels[[n_models]]$time_horizon <- t_val + t_remain
+    }
+    
+    ps_chain <- do.call(CombinedModel, args = submodels)
+    res_ps <- run_model(ps_chain)
+    
+    result_label <- paste0("t_between_", t_val, "_screens_", n_scr)
+    all_results_ps[[result_label]] <- list(
+      t_between_screens = t_val,
+      num_screens       = n_scr,
+      results           = res_ps
+    )
+  }
+}
+```
 
-# Identical orchestration call
-res_screening_model <- run_model(screening_model)
+```{r}
+#| label: fig-occupy-combined-ps
+#| fig-cap: "State occupancy plots comparing 2-year and 10-year screening intervals using the PartSA model."
+#| fig-subcap: 
+#|   - "2-yearly screening (10 rounds, 20-year horizon)"
+#|   - "10-yearly screening (2 rounds, 20-year horizon)"
+#| layout-ncol: 1
+#| fig-width: 8
+#| fig-height: 4.5
+#| echo: false
+
+combine_ps_states <- function(trace_data) {
+  plot_states <- c("Healthy", "Disease", "Treated", "Dead")
+  trace_data |>
+    dplyr::mutate(
+      state = dplyr::case_when(
+        state %in% c("Death_from_Disease", "Other_Cause_Death") ~ "Dead",
+        state %in% c("Pre_clinical_Disease", "Disease") ~ "Disease",
+        TRUE ~ as.character(state)
+      )
+    ) |>
+    dplyr::group_by(year, state) |>
+    dplyr::summarise(occupancy = sum(occupancy), .groups = "drop") |>
+    dplyr::mutate(
+      state     = factor(state, levels = plot_states),
+      rev_state = factor(state, levels = rev(plot_states))
+    )
+}
+
+trace_2y_ps  <- combine_ps_states(get_occupancy_trace(all_results_ps[["t_between_2_screens_10"]]$results))
+trace_10y_ps <- combine_ps_states(get_occupancy_trace(all_results_ps[["t_between_10_screens_2"]]$results))
+
+plot_occupancy(trace_2y_ps,  "PartSA State Occupancy: 2-Yearly Screening")
+plot_occupancy(trace_10y_ps, "PartSA State Occupancy: 10-Yearly Screening")
+```
+
+```{r}
+#| label: fig-ce-plot-ps
+#| fig-cap: "Cost-effectiveness plot for PartSA screening intervals of 1 to 5 years."
+#| fig-width: 8
+#| fig-height: 5
+#| echo: false
+
+ce_data_ps <- dplyr::tibble(
+  t_interval = factor(vapply(all_results_ps, \(x) x$t_between_screens, numeric(1))),
+  n_screens  = vapply(all_results_ps, \(x) x$num_screens, numeric(1)),
+  cost       = vapply(all_results_ps, \(x) get_costs(x$results), numeric(1)),
+  qalys      = vapply(all_results_ps, \(x) get_effects(x$results), numeric(1))
+) |> 
+  dplyr::filter(t_interval %in% as.character(1:5))
+
+ggplot(ce_data_ps, aes(x = qalys, y = cost, color = t_interval, group = t_interval)) +
+  geom_point(size = 2.5) +
+  geom_path(linewidth = 1) +
+  geom_text(aes(label = n_screens), vjust = -0.8, size = 3.2, show.legend = FALSE) +
+  scale_color_viridis_d(name = "Screening Interval\n(Years)") +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 8)) +
+  labs(
+    title = "PartSA Cost-Effectiveness Plane",
+    x = "Total Health Gain (QALYs)",
+    y = "Total Expected Cost (£)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    panel.grid.minor = element_blank(),
+    plot.title       = element_text(face = "bold"),
+    legend.position  = "right"
+  )
 ```
 
 ### Structural Adaptations via S3 Class Specialisation
