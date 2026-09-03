@@ -785,15 +785,91 @@ ggplot(ce_data, aes(x = qalys, y = cost, color = t_interval, group = t_interval)
 
 # Changes in Model and Data
 
+As for the previous example, the PSM engine it assumed a blackbox for our purposes so is not shown here but all code is avaialable in the GitHub repository.
+
 ```{r}
+#| label: fig-natural-history
+#| fig-cap: "Natural history state occupancy with fitted PartSA survival curves (PFS and OS)."
+#| fig-width: 8
+#| fig-height: 5
 #| echo: false
 
-# Dummy data matching Markov model example
-model_a <- dt
-map_ps <- mapping
+# 1. Natural History Analysis
+init_nh <- c(
+  Healthy              = 0.80,
+  Pre_clinical_Disease = 0.15,
+  Disease              = 0.05,
+  Treated              = 0.00,
+  Death_from_Disease   = 0.00,
+  Other_Cause_Death    = 0.00
+)
 
-fit_pfs <- function(t) exp(-0.1 * t)
-fit_os <- function(t) exp(-0.05 * t)
+mm_nh <- MarkovModel(
+  trans_matrix = trans_mat,
+  costs        = cost_vec,
+  utils        = util_vec,
+  init_probs   = init_nh,
+  mapping      = mapping,
+  n_cycles     = 20,
+  disc_rate    = discount_rate
+)
+res_nh <- run_model(mm_nh)
+trace_nh <- res_nh$trace
+
+# 2. Extract PFS and OS
+time_seq <- 0:20
+pfs_trace <- trace_nh[, "Healthy"]
+os_trace <- 1 - (trace_nh[, "Death_from_Disease"] + trace_nh[, "Other_Cause_Death"])
+
+# 3. Fit exponential models using log-linear regression to avoid non-convergence on exact fits
+pfs_df <- data.frame(t = time_seq, prop = as.numeric(pfs_trace))
+os_df  <- data.frame(t = time_seq, prop = as.numeric(os_trace))
+
+fit_pfs_lm <- lm(log(prop) ~ t, data = pfs_df)
+fit_os_lm  <- lm(log(prop) ~ t, data = os_df)
+
+a_pfs <- exp(coef(fit_pfs_lm)[["(Intercept)"]])
+b_pfs <- -coef(fit_pfs_lm)[["t"]]
+a_os  <- exp(coef(fit_os_lm)[["(Intercept)"]])
+b_os  <- -coef(fit_os_lm)[["t"]]
+
+# Define survival functions for PartSA
+fit_pfs <- function(t) a_pfs * exp(-b_pfs * t)
+fit_os  <- function(t) a_os  * exp(-b_os * t)
+
+# 4. Plot Natural History with Fitted Curves
+trace_long <- as.data.frame(trace_nh) |>
+  dplyr::mutate(t = time_seq) |>
+  tidyr::pivot_longer(cols = -t, names_to = "state", values_to = "occupancy") |>
+  dplyr::mutate(
+    state = factor(state, levels = states),
+    rev_state = factor(state, levels = rev(states))
+  )
+
+fit_df <- data.frame(
+  t = time_seq,
+  PFS = fit_pfs(time_seq),
+  OS = fit_os(time_seq)
+)
+
+ggplot2::ggplot() +
+  ggplot2::geom_col(data = trace_long, ggplot2::aes(x = t, y = occupancy, fill = rev_state), width = 0.9) +
+  ggplot2::geom_line(data = fit_df, ggplot2::aes(x = t, y = PFS, linetype = "PFS"), linewidth = 1) +
+  ggplot2::geom_line(data = fit_df, ggplot2::aes(x = t, y = OS, linetype = "OS"), linewidth = 1) +
+  ggplot2::scale_fill_brewer(palette = "Set2", name = "Health State") +
+  ggplot2::scale_linetype_manual(name = "Fitted Survival", values = c("PFS" = "dashed", "OS" = "solid")) +
+  ggplot2::scale_y_continuous(labels = scales::percent_format(accuracy = 1), expand = c(0, 0)) +
+  ggplot2::labs(
+    title = "Natural History State Occupancy & Fitted Survival Curves",
+    x = "Year (Simulation Cycle)",
+    y = "Cohort Proportion"
+  ) +
+  ggplot2::theme_minimal(base_size = 12) +
+  ggplot2::theme(legend.position = "right")
+```
+
+```{r}
+#| echo: false
 
 run_partsa_engine <- function(pfs_fit, os_fit, weights, horizon) {
   # Calculate simple area under the curve (AUC) for time in states
@@ -824,6 +900,8 @@ run_partsa_engine <- function(pfs_fit, os_fit, weights, horizon) {
     mesh = cbind(PFS = pfs_fit(t), OS = os_fit(t))
   )
 }
+
+map_ps <- mapping
 ```
 
 ### Submodel substitution
@@ -854,11 +932,9 @@ PartSAModel <- function(surv_pfs, surv_os, cost_vector,
 S3 methods
 
 ```{r}
-#' S3 update method: Ingests Decision Tree outputs into PartSA baseline parameters
+#' S3 update method: Ingests Decision Tree outputs
+#' into PartSA baseline parameters
 update_model.PartSAModel <- function(model, result) {
-  # Map tree probabilities to adjust scale or 
-  # baseline hazard for each treatment arm
-  # dummy baseline weight vector
   model$baseline_weights <- rep(1, length(model$mapping))
   model
 }
@@ -867,7 +943,8 @@ update_model.PartSAModel <- function(model, result) {
 ```{r}
 #' S3 runner method: Solves the area under the curves
 run_model.PartSAModel <- function(model) {
-  # Evaluate partitioned survival areas (PFS, OS - PFS, 1 - OS)
+  # Evaluate partitioned survival areas 
+  # (PFS, OS - PFS, 1 - OS)
   out <- run_partsa_engine(
     pfs_fit    = model$surv_pfs, 
     os_fit     = model$surv_os, 
@@ -889,17 +966,19 @@ run_model.PartSAModel <- function(model) {
 Analysis
 
 ```{r PartSA-analysis}
-# Swap Markov for PartSA without touching runner code:
-model_c <- PartSAModel(surv_pfs = fit_pfs, surv_os = fit_os, 
-                       cost_vector = cost_vec, qaly_vector = util_vec, 
-                       mapping = map_ps)
-chain_partsa <- CombinedModel(model_a, model_c)
+# Swap Markov for PartSA
+psm <- PartSAModel(surv_pfs = fit_pfs, surv_os = fit_os, 
+                   cost_vector = cost_vec, qaly_vector = util_vec, 
+                   mapping = map_ps)
+
+screening_model <- CombinedModel(dt, psm)
 
 # Identical orchestration call
-res_partsa <- run_model(chain_partsa)
+res_screening_model <- run_model(screening_model)
 ```
 
 ### Structural Adaptations via S3 Class Specialisation
+
 When a jurisdiction mandates a structural change—such as an alternative long-term extrapolation method or an additional post-progression therapy branch, we can use class derivation (e.g., `c("MarkovModel_PBAC", "MarkovModel", "Model")`).
 
 ```{r}
