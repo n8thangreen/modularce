@@ -229,7 +229,8 @@ The class constructor functions for a decision tree and a Markov model are:
 DecisionTree <- function(data, disc_rate = 0.035) {
   structure(
     list(data = data,
-         discount_rate = disc_rate),
+         discount_rate = disc_rate,
+         start_cycle   = 0),
     class = c("DecisionTree", "Model"))
 }
 
@@ -247,7 +248,8 @@ MarkovModel <- function(trans_matrix,
       init_probs    = init_probs,
       mapping       = mapping,
       n_cycles      = n_cycles,
-      discount_rate = disc_rate
+      discount_rate = disc_rate,
+      start_cycle   = 0
     ),
     class = c("MarkovModel", "Model")
   )
@@ -288,7 +290,7 @@ run_model.MarkovModel <- function(model, ...) {
     util_vec      = model$util_vector,
     n_cycles      = model$n_cycles,
     discount_rate = model$discount_rate,
-    start_cycle   = ifelse(is.null(model$start_cycle), 0, model$start_cycle)
+    start_cycle   = model$start_cycle
   )
   
   list(
@@ -301,15 +303,17 @@ run_model.MarkovModel <- function(model, ...) {
 }
 
 run_model.DecisionTree <- function(model, ...) {
-  pathways <- calculate_pathways(model$data)
+  path <- calculate_pathways(model$data)
   
-  start_cycle <- ifelse(is.null(model$start_cycle), 0, model$start_cycle)
-  discount_factor <- 1 / (1 + model$discount_rate)^start_cycle
+  rate <- model$discount_rate
+  cycle <- model$start_cycle
+  
+  discount_factor <- 1 / (1 + rate)^cycle
   
   list(
-    expected_cost = sum(pathways$prob * pathways$cost) * discount_factor,
-    expected_eff  = sum(pathways$prob * pathways$eff) * discount_factor,
-    path_results  = pathways,
+    expected_cost = sum(path$prob * path$cost) * discount_factor,
+    expected_eff  = sum(path$prob * path$eff) * discount_factor,
+    path_results  = path,
     time_elapsed  = 0
   )
 }
@@ -623,17 +627,18 @@ for (t_val in t_between_screens) {
                 disc_rate = discount_rate)
   
   for (n_scr in num_screens) {
-    total_screen_time <- n_scr * t_val
+    total_time <- n_scr * t_val
     
     # Filter out impossible combinations that
     # exceed the 20-year time horizon
-    if (total_screen_time > time_horizon) next
+    if (total_time > time_horizon) next
     
     submodels <- rep(list(dt, mm_scenario), n_scr)
+    n_models <- length(submodels)
     
-    t_remain <- time_horizon - total_screen_time
+    t_remain <- time_horizon - total_time
     if (t_remain > 0) {
-      submodels[[length(submodels)]]$n_cycles <- t_val + t_remain
+      submodels[[n_models]]$n_cycles <- t_val + t_remain
     }
     
     screening_model <- do.call(CombinedModel, args = submodels)
@@ -778,8 +783,154 @@ ggplot(ce_data, aes(x = qalys, y = cost, color = t_interval, group = t_interval)
   )
 ```
 
-# Conclusion
+# Changes in Model and Data
 
+```{r}
+#| echo: false
+
+# Dummy data matching Markov model example
+model_a <- dt
+map_ps <- mapping
+
+fit_pfs <- function(t) exp(-0.1 * t)
+fit_os <- function(t) exp(-0.05 * t)
+
+run_partsa_engine <- function(pfs_fit, os_fit, weights, horizon) {
+  # Calculate simple area under the curve (AUC) for time in states
+  t <- seq(0, horizon, by = 1)
+  auc_pfs <- sum(pfs_fit(t))
+  auc_os  <- sum(os_fit(t))
+  
+  time_pf   <- auc_pfs
+  time_pd   <- auc_os - auc_pfs
+  time_dead <- horizon - auc_os
+  
+  # Map PartSA states to the 6 Markov states
+  # PFS -> Healthy (disease free)
+  # PD -> Diseases
+  # 1 - OS -> Death_from_Disease & Other_Cause_Death
+  state_time <- c(
+    Healthy              = time_pf,
+    Pre_clinical_Disease = time_pd / 2,
+    Disease              = time_pd / 2,
+    Treated              = 0,
+    Death_from_Disease   = time_dead / 2,
+    Other_Cause_Death    = time_dead / 2
+  )
+  
+  list(
+    state_costs = state_time,
+    state_qalys = state_time,
+    mesh = cbind(PFS = pfs_fit(t), OS = os_fit(t))
+  )
+}
+```
+
+### Submodel substitution
+
+From a Markov model to a partitioned survival model (PSM).
+
+```{r}
+# constructor
+PartSAModel <- function(surv_pfs, surv_os, cost_vector, 
+                        qaly_vector, mapping = NA,
+                        time_horizon = 10,
+                        discount_rate = 0.035) {
+  structure(
+    list(
+      surv_pfs     = surv_pfs,     # parametric survival curves
+      surv_os      = surv_os,
+      cost_vector  = cost_vector,
+      qaly_vector  = qaly_vector,
+      mapping      = mapping,      # links tree terminal nodes to baseline survival risk
+      time_horizon = time_horizon,
+      discount_rate = discount_rate
+    ),
+    class = c("PartSAModel", "Model")
+  )
+}
+```
+
+S3 methods
+
+```{r}
+#' S3 update method: Ingests Decision Tree outputs into PartSA baseline parameters
+update_model.PartSAModel <- function(model, result) {
+  # Map tree probabilities to adjust scale or 
+  # baseline hazard for each treatment arm
+  # dummy baseline weight vector
+  model$baseline_weights <- rep(1, length(model$mapping))
+  model
+}
+```
+
+```{r}
+#' S3 runner method: Solves the area under the curves
+run_model.PartSAModel <- function(model) {
+  # Evaluate partitioned survival areas (PFS, OS - PFS, 1 - OS)
+  out <- run_partsa_engine(
+    pfs_fit    = model$surv_pfs, 
+    os_fit     = model$surv_os, 
+    weights    = model$baseline_weights,
+    horizon    = model$time_horizon
+  )
+  
+  structure(
+    list(
+      expected_cost = sum(out$state_costs * model$cost_vector),
+      expected_eff  = sum(out$state_qalys * model$qaly_vector),
+      survival_mesh = out$mesh
+    ),
+    class = c("output", class(model))
+  )
+}
+```
+
+Analysis
+
+```{r PartSA-analysis}
+# Swap Markov for PartSA without touching runner code:
+model_c <- PartSAModel(surv_pfs = fit_pfs, surv_os = fit_os, 
+                       cost_vector = cost_vec, qaly_vector = util_vec, 
+                       mapping = map_ps)
+chain_partsa <- CombinedModel(model_a, model_c)
+
+# Identical orchestration call
+res_partsa <- run_model(chain_partsa)
+```
+
+### Structural Adaptations via S3 Class Specialisation
+When a jurisdiction mandates a structural change—such as an alternative long-term extrapolation method or an additional post-progression therapy branch, we can use class derivation (e.g., `c("MarkovModel_PBAC", "MarkovModel", "Model")`).
+
+```{r}
+# PBAC structural variant: models continuous PBS dynamic market-share erosion
+MarkovModel_PBAC <- function(trans_matrix, costs, utils, 
+                             erosion_rate = 0.05, mapping = NULL, ...) {
+  mod <- MarkovModel(trans_matrix = trans_matrix, costs = costs, 
+                     utils = utils, mapping = mapping, ...)
+  mod$erosion_rate <- erosion_rate
+  class(mod) <- c("MarkovModel_PBAC", class(mod))
+  mod
+}
+
+# Specific S3 method dispatch: PBAC applies market-share price cuts over cycles
+run_model.MarkovModel_PBAC <- function(model) {
+  # Apply country-specific dynamic erosion adjustment before running
+  model$cost_vector <- model$cost_vector * (1 - model$erosion_rate)
+  
+  # Delegate core execution to base Markov runner
+  NextMethod("run_model")
+}
+```
+
+The `NextMethod()` function delegates the heavy matrix operations directly to the verified global engine (`run_model.MarkovModel`).
+The central orchestrator `run_model.CombinedModel` runs without touching a line of code.
+
+
+# Discussion
+Traditional health economic models often bundle clinical pathways, cost inputs, and final calculations into a single, rigid script or spreadsheet, making them fragile and difficult to update. In contrast, our framework applies established software engineering standards—specifically the SOLID principles—to create a much more robust and adaptable system. By ensuring that each component has only one job (Single Responsibility), such as completely separating the clinical simulation from the economic payoffs, we drastically reduce the risk of errors when updating parameters. Furthermore, the architecture is designed so that new components, like a custom jurisdiction profile or a new sub-model, can be plugged into the pipeline without altering or breaking the core mathematical engine (Open-Closed Principle). Because all sub-models communicate through a standardised data contract, researchers can swap a Markov model for a different structure with confidence that the downstream calculations will still function perfectly (Liskov Substitution). Ultimately, this approach moves health economic modelling away from bespoke, tangled code and towards a transparent, modular infrastructure where each piece can be independently tested and trusted.
+
+# Conclusion
 We have demonstrated that adopting a declarative, object-oriented programming approach using S3 in R provides a robust and scalable solution for multi-component cost-effectiveness models. By abstracting the control flow and automating data transitions between DTs and MMs, this framework directly addresses the testability, reproducibility, and efficiency issues prevalent in legacy imperative scripts. Although moving away from traditional step-by-step coding requires a paradigm shift for many health economists, the resulting unified architecture aligns health technology assessment with modern software engineering best practices. Ultimately, this improves the transparency, flexibility, and reliability of the models used to inform critical healthcare decisions.
 
 ## Acknowledgements {.unnumbered}

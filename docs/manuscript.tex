@@ -1,25 +1,27 @@
 % Options for packages loaded elsewhere
+% Options for packages loaded elsewhere
 \PassOptionsToPackage{unicode}{hyperref}
 \PassOptionsToPackage{hyphens}{url}
 \PassOptionsToPackage{dvipsnames,svgnames,x11names}{xcolor}
 %
 \documentclass[
 ]{article}
-
+\usepackage{xcolor}
 \usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{5}
 \usepackage{iftex}
 \ifPDFTeX
   \usepackage[T1]{fontenc}
   \usepackage[utf8]{inputenc}
   \usepackage{textcomp} % provide euro and other symbols
 \else % if luatex or xetex
-  \usepackage{unicode-math}
+  \usepackage{unicode-math} % this also loads fontspec
   \defaultfontfeatures{Scale=MatchLowercase}
   \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
 \fi
 \usepackage{lmodern}
-\ifPDFTeX\else  
-    % xetex/luatex font selection
+\ifPDFTeX\else
+  % xetex/luatex font selection
 \fi
 % Use upquote if available, for straight quotes in verbatim environments
 \IfFileExists{upquote.sty}{\usepackage{upquote}}{}
@@ -37,9 +39,6 @@
 }{% if KOMA class
   \KOMAoptions{parskip=half}}
 \makeatother
-\usepackage{xcolor}
-\setlength{\emergencystretch}{3em} % prevent overfull lines
-\setcounter{secnumdepth}{5}
 % Make \paragraph and \subparagraph free-standing
 \makeatletter
 \ifx\paragraph\undefined\else
@@ -105,8 +104,8 @@
 \newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.13,0.47,0.30}{#1}}
 \newcommand{\WarningTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{\textit{#1}}}
 
-\providecommand{\tightlist}{%
-  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}\usepackage{longtable,booktabs,array}
+\usepackage{longtable,booktabs,array}
+\newcounter{none} % for unnumbered tables
 \usepackage{calc} % for calculating minipage widths
 % Correct order of tables after \paragraph or \subparagraph
 \usepackage{etoolbox}
@@ -118,17 +117,21 @@
 \makesavenoteenv{longtable}
 \usepackage{graphicx}
 \makeatletter
-\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
-\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
-\makeatother
-% Scale images if necessary, so that they will not overflow the page
-% margins by default, and it is still possible to overwrite the defaults
-% using explicit options in \includegraphics[width, height, ...]{}
-\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
 % Set default figure placement to htbp
-\makeatletter
 \def\fps@figure{htbp}
 \makeatother
+
+
 % definitions for citeproc citations
 \NewDocumentCommand\citeproctext{}{}
 \NewDocumentCommand\citeproc{mm}{%
@@ -162,6 +165,18 @@
 \newcommand{\CSLLeftMargin}[1]{\parbox[t]{\csllabelwidth}{\strut#1\strut}}
 \newcommand{\CSLRightInline}[1]{\parbox[t]{\linewidth - \csllabelwidth}{\strut#1\strut}}
 \newcommand{\CSLIndent}[1]{\hspace{\cslhangindent}#1}
+
+
+
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+
+
+ 
+
 
 \makeatletter
 \@ifpackageloaded{caption}{}{\usepackage{caption}}
@@ -204,14 +219,9 @@
 \@ifpackageloaded{caption}{}{\usepackage{caption}}
 \@ifpackageloaded{subcaption}{}{\usepackage{subcaption}}
 \makeatother
-
-\ifLuaTeX
-  \usepackage{selnolig}  % disable illegal ligatures
-\fi
 \usepackage{bookmark}
-
 \IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
-\urlstyle{same} % disable monospaced font for URLs
+\urlstyle{same}
 \hypersetup{
   pdftitle={A Unified Framework for Multiple Component Cost-Effectiveness Models in R: A Tutorial},
   pdfauthor={Nathan Green},
@@ -227,7 +237,6 @@
 Models in R: A Tutorial}
 \author{Nathan Green}
 \date{}
-
 \begin{document}
 \maketitle
 \begin{abstract}
@@ -281,14 +290,14 @@ et al. 2004). This consists of an initial stage where a decision-making
 process and intervention are undertaken. An individual would be
 evaluated and treated according to certain deterministic and random
 considerations. The subsequent stage simulates the consequences of the
-first stage on the population depending on the previous results (Briggs,
-Claxton, and Sculpher 2006). For example, individuals may be invited to
-screening and given treatment according to the results of an imperfect
-test. Then their long term outcomes are estimated, with the population
-split into true positive, true negative, false positive and false
-negatives who may or may not have agreed to take the treatment which may
-not have been effective. Outcomes for the second stage may include
-progression to disease, side effects from treatment, and mortality.
+first stage on the population depending on the previous results (Briggs
+et al. 2006). For example, individuals may be invited to screening and
+given treatment according to the results of an imperfect test. Then
+their long term outcomes are estimated, with the population split into
+true positive, true negative, false positive and false negatives who may
+or may not have agreed to take the treatment which may not have been
+effective. Outcomes for the second stage may include progression to
+disease, side effects from treatment, and mortality.
 
 There are general modelling and software engineering issues with the
 legacy multiple component modelling approach. These are either disjoint
@@ -400,7 +409,7 @@ toolkit and skill in the field.
 
 \centering{
 
-\includegraphics[width=0.9\textwidth,height=\textheight]{swimline-new.png}
+\includegraphics[width=0.9\linewidth,height=\textheight,keepaspectratio]{swimline-new.png}
 
 }
 
@@ -498,8 +507,8 @@ consistent behaviours, substantially enhancing analytical extensibility,
 transparency and structural flexibility.
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
 \caption{Examples of S3 classes in R and how they are
 defined.}\label{tbl-s3classes}\tabularnewline
 \toprule\noalign{}
@@ -667,22 +676,22 @@ output of one model directly into the input of the next.
 episodes}\label{case-study-multiple-screening-episodes}
 
 We reframe a previously published screening CEA model, built for the
-purposes of teaching and training in R (Lin, O'Mahony, and Rosmalen
-2023). The example will demonstrate the different implementation
-approaches in a real-world case study. This is a CEA model that involves
-multiple screening sessions over a lifetime where, at the point of every
-screening session, individuals can be redistributed across health states
-in a MM based on their screening results (Afonso et al. 2023; Hazen
-2002; Hollenberg 1984).
+purposes of teaching and training in R (Lin et al. 2023). The example
+will demonstrate the different implementation approaches in a real-world
+case study. This is a CEA model that involves multiple screening
+sessions over a lifetime where, at the point of every screening session,
+individuals can be redistributed across health states in a MM based on
+their screening results (Afonso et al. 2023; Hazen 2002; Hollenberg
+1984).
 
 \subsection{Data}\label{data}
 
 The scenarios included are for five screening intervals of 2, 5, 10, 15,
 20 years, and six total number of screening episodes 1, 2, 3, 4, 5, 10.
 Figure~\ref{fig-screening-model} shows the high-level diagram of the
-screening model from Lin, O'Mahony, and Rosmalen (2023). The Markov
-model and decision tree diagrams are shown in
-Figure~\ref{fig-markov-model} and Figure~\ref{fig-decision-tree-model}.
+screening model from Lin et al. (2023). The Markov model and decision
+tree diagrams are shown in Figure~\ref{fig-markov-model} and
+Figure~\ref{fig-decision-tree-model}.
 
 The data for the Markov model consist of the state transition
 probability matrix \[
@@ -723,17 +732,17 @@ the decision tree which are therefore time-dependent.
 
 \centering{
 
-\includegraphics[width=1\textwidth,height=\textheight]{model-diagram.png}
+\includegraphics[width=1\linewidth,height=\textheight,keepaspectratio]{model-diagram.png}
 
 }
 
 \caption{\label{fig-screening-model}Screening model diagram taken from
-Lin, O'Mahony, and Rosmalen (2023). The white health states represent
-the natural history of disease. The two interventions, screening and
-treatment, are labelled in green. The screening intervention can only be
-implemented before the individual enters clinical health state (stage
-3), and treatment can be received when patients are diagnosed from
-screening (stage 2) or clinically presented (stage 3).}
+Lin et al. (2023). The white health states represent the natural history
+of disease. The two interventions, screening and treatment, are labelled
+in green. The screening intervention can only be implemented before the
+individual enters clinical health state (stage 3), and treatment can be
+received when patients are diagnosed from screening (stage 2) or
+clinically presented (stage 3).}
 
 \end{figure}%
 
@@ -741,7 +750,7 @@ screening (stage 2) or clinically presented (stage 3).}
 
 \centering{
 
-\includegraphics[width=1\textwidth,height=\textheight]{markov_model.png}
+\includegraphics[width=1\linewidth,height=\textheight,keepaspectratio]{markov_model.png}
 
 }
 
@@ -754,7 +763,7 @@ screening example.}
 
 \centering{
 
-\includegraphics[width=1\textwidth,height=\textheight]{decision_tree_model2.png}
+\includegraphics[width=1\linewidth,height=\textheight,keepaspectratio]{decision_tree_model2.png}
 
 }
 
@@ -801,7 +810,8 @@ are:
 \NormalTok{DecisionTree }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(data, }\AttributeTok{disc\_rate =} \FloatTok{0.035}\NormalTok{) \{}
   \FunctionTok{structure}\NormalTok{(}
     \FunctionTok{list}\NormalTok{(}\AttributeTok{data =}\NormalTok{ data,}
-         \AttributeTok{discount\_rate =}\NormalTok{ disc\_rate),}
+         \AttributeTok{discount\_rate =}\NormalTok{ disc\_rate,}
+         \AttributeTok{start\_cycle   =} \DecValTok{0}\NormalTok{),}
     \AttributeTok{class =} \FunctionTok{c}\NormalTok{(}\StringTok{"DecisionTree"}\NormalTok{, }\StringTok{"Model"}\NormalTok{))}
 \NormalTok{\}}
 
@@ -819,7 +829,8 @@ are:
       \AttributeTok{init\_probs    =}\NormalTok{ init\_probs,}
       \AttributeTok{mapping       =}\NormalTok{ mapping,}
       \AttributeTok{n\_cycles      =}\NormalTok{ n\_cycles,}
-      \AttributeTok{discount\_rate =}\NormalTok{ disc\_rate}
+      \AttributeTok{discount\_rate =}\NormalTok{ disc\_rate,}
+      \AttributeTok{start\_cycle   =} \DecValTok{0}
 \NormalTok{    ),}
     \AttributeTok{class =} \FunctionTok{c}\NormalTok{(}\StringTok{"MarkovModel"}\NormalTok{, }\StringTok{"Model"}\NormalTok{)}
 \NormalTok{  )}
@@ -874,7 +885,7 @@ submodels are defined next:
     \AttributeTok{util\_vec      =}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{util\_vector,}
     \AttributeTok{n\_cycles      =}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{n\_cycles,}
     \AttributeTok{discount\_rate =}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{discount\_rate,}
-    \AttributeTok{start\_cycle   =} \FunctionTok{ifelse}\NormalTok{(}\FunctionTok{is.null}\NormalTok{(model}\SpecialCharTok{$}\NormalTok{start\_cycle), }\DecValTok{0}\NormalTok{, model}\SpecialCharTok{$}\NormalTok{start\_cycle)}
+    \AttributeTok{start\_cycle   =}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{start\_cycle}
 \NormalTok{  )}
   
   \FunctionTok{list}\NormalTok{(}
@@ -887,15 +898,17 @@ submodels are defined next:
 \NormalTok{\}}
 
 \NormalTok{run\_model.DecisionTree }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(model, ...) \{}
-\NormalTok{  pathways }\OtherTok{\textless{}{-}} \FunctionTok{calculate\_pathways}\NormalTok{(model}\SpecialCharTok{$}\NormalTok{data)}
+\NormalTok{  path }\OtherTok{\textless{}{-}} \FunctionTok{calculate\_pathways}\NormalTok{(model}\SpecialCharTok{$}\NormalTok{data)}
   
-\NormalTok{  start\_cycle }\OtherTok{\textless{}{-}} \FunctionTok{ifelse}\NormalTok{(}\FunctionTok{is.null}\NormalTok{(model}\SpecialCharTok{$}\NormalTok{start\_cycle), }\DecValTok{0}\NormalTok{, model}\SpecialCharTok{$}\NormalTok{start\_cycle)}
-\NormalTok{  discount\_factor }\OtherTok{\textless{}{-}} \DecValTok{1} \SpecialCharTok{/}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{+}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{discount\_rate)}\SpecialCharTok{\^{}}\NormalTok{start\_cycle}
+\NormalTok{  rate }\OtherTok{\textless{}{-}}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{discount\_rate}
+\NormalTok{  cycle }\OtherTok{\textless{}{-}}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{start\_cycle}
+  
+\NormalTok{  discount\_factor }\OtherTok{\textless{}{-}} \DecValTok{1} \SpecialCharTok{/}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{+}\NormalTok{ rate)}\SpecialCharTok{\^{}}\NormalTok{cycle}
   
   \FunctionTok{list}\NormalTok{(}
-    \AttributeTok{expected\_cost =} \FunctionTok{sum}\NormalTok{(pathways}\SpecialCharTok{$}\NormalTok{prob }\SpecialCharTok{*}\NormalTok{ pathways}\SpecialCharTok{$}\NormalTok{cost) }\SpecialCharTok{*}\NormalTok{ discount\_factor,}
-    \AttributeTok{expected\_eff  =} \FunctionTok{sum}\NormalTok{(pathways}\SpecialCharTok{$}\NormalTok{prob }\SpecialCharTok{*}\NormalTok{ pathways}\SpecialCharTok{$}\NormalTok{eff) }\SpecialCharTok{*}\NormalTok{ discount\_factor,}
-    \AttributeTok{path\_results  =}\NormalTok{ pathways,}
+    \AttributeTok{expected\_cost =} \FunctionTok{sum}\NormalTok{(path}\SpecialCharTok{$}\NormalTok{prob }\SpecialCharTok{*}\NormalTok{ path}\SpecialCharTok{$}\NormalTok{cost) }\SpecialCharTok{*}\NormalTok{ discount\_factor,}
+    \AttributeTok{expected\_eff  =} \FunctionTok{sum}\NormalTok{(path}\SpecialCharTok{$}\NormalTok{prob }\SpecialCharTok{*}\NormalTok{ path}\SpecialCharTok{$}\NormalTok{eff) }\SpecialCharTok{*}\NormalTok{ discount\_factor,}
+    \AttributeTok{path\_results  =}\NormalTok{ path,}
     \AttributeTok{time\_elapsed  =} \DecValTok{0}
 \NormalTok{  )}
 \NormalTok{\}}
@@ -1129,17 +1142,18 @@ straightforward to run the analysis inside of a loop over the scenarios.
                 \AttributeTok{disc\_rate =}\NormalTok{ discount\_rate)}
   
   \ControlFlowTok{for}\NormalTok{ (n\_scr }\ControlFlowTok{in}\NormalTok{ num\_screens) \{}
-\NormalTok{    total\_screen\_time }\OtherTok{\textless{}{-}}\NormalTok{ n\_scr }\SpecialCharTok{*}\NormalTok{ t\_val}
+\NormalTok{    total\_time }\OtherTok{\textless{}{-}}\NormalTok{ n\_scr }\SpecialCharTok{*}\NormalTok{ t\_val}
     
     \CommentTok{\# Filter out impossible combinations that}
     \CommentTok{\# exceed the 20{-}year time horizon}
-    \ControlFlowTok{if}\NormalTok{ (total\_screen\_time }\SpecialCharTok{\textgreater{}}\NormalTok{ time\_horizon) }\ControlFlowTok{next}
+    \ControlFlowTok{if}\NormalTok{ (total\_time }\SpecialCharTok{\textgreater{}}\NormalTok{ time\_horizon) }\ControlFlowTok{next}
     
 \NormalTok{    submodels }\OtherTok{\textless{}{-}} \FunctionTok{rep}\NormalTok{(}\FunctionTok{list}\NormalTok{(dt, mm\_scenario), n\_scr)}
+\NormalTok{    n\_models }\OtherTok{\textless{}{-}} \FunctionTok{length}\NormalTok{(submodels)}
     
-\NormalTok{    t\_remain }\OtherTok{\textless{}{-}}\NormalTok{ time\_horizon }\SpecialCharTok{{-}}\NormalTok{ total\_screen\_time}
+\NormalTok{    t\_remain }\OtherTok{\textless{}{-}}\NormalTok{ time\_horizon }\SpecialCharTok{{-}}\NormalTok{ total\_time}
     \ControlFlowTok{if}\NormalTok{ (t\_remain }\SpecialCharTok{\textgreater{}} \DecValTok{0}\NormalTok{) \{}
-\NormalTok{      submodels[[}\FunctionTok{length}\NormalTok{(submodels)]]}\SpecialCharTok{$}\NormalTok{n\_cycles }\OtherTok{\textless{}{-}}\NormalTok{ t\_val }\SpecialCharTok{+}\NormalTok{ t\_remain}
+\NormalTok{      submodels[[n\_models]]}\SpecialCharTok{$}\NormalTok{n\_cycles }\OtherTok{\textless{}{-}}\NormalTok{ t\_val }\SpecialCharTok{+}\NormalTok{ t\_remain}
 \NormalTok{    \}}
     
 \NormalTok{    screening\_model }\OtherTok{\textless{}{-}} \FunctionTok{do.call}\NormalTok{(CombinedModel, }\AttributeTok{args =}\NormalTok{ submodels)}
@@ -1188,17 +1202,17 @@ Should the code use the information about which type of model is being
 linked from (source) and linked to (target)? In an OOP framework this
 would require something called \emph{double dispatch} which is not the
 original intention of S3 in R but can be manufactured using it and is
-implemented in packages such as \emph{vctrs} (Wickham, Henry, and
-Vaughan 2026). Taking into account these considerations, in our case
-study example we have placed the linking logic within the model running
-function. We have also assumed that given a target model, we then know
-what the source model is. This is reasonable in our context and keeps
-the code clean for demonstration purposes. An alternative version of our
-code using the double dispatch approach employed by \emph{vctrs} is also
-available in the supplementary material. The newer and less adopted S7
-OOP system in R does natively support multiple dispatch which could
-elegantly solve the problem with a little more advanced code. We provide
-a version of the code in the supplementary material.
+implemented in packages such as \emph{vctrs} (Wickham et al. 2026).
+Taking into account these considerations, in our case study example we
+have placed the linking logic within the model running function. We have
+also assumed that given a target model, we then know what the source
+model is. This is reasonable in our context and keeps the code clean for
+demonstration purposes. An alternative version of our code using the
+double dispatch approach employed by \emph{vctrs} is also available in
+the supplementary material. The newer and less adopted S7 OOP system in
+R does natively support multiple dispatch which could elegantly solve
+the problem with a little more advanced code. We provide a version of
+the code in the supplementary material.
 
 Our decision to utilize an S3-based orchestrator to link sequential
 model components aligns with established best practices in modern R
@@ -1221,11 +1235,11 @@ redistributes the population more rapidly into the ``Treated'' and
 
 \begin{figure}
 
-\begin{minipage}{\linewidth}
+\begin{minipage}[t]{\linewidth}
 
 \centering{
 
-\includegraphics{manuscript_files/figure-pdf/fig-occupy-combined-1.pdf}
+\pandocbounded{\includegraphics[keepaspectratio]{manuscript_files/figure-pdf/fig-occupy-combined-1.pdf}}
 
 }
 
@@ -1234,11 +1248,11 @@ redistributes the population more rapidly into the ``Treated'' and
 
 \end{minipage}%
 \newline
-\begin{minipage}{\linewidth}
+\begin{minipage}[t]{\linewidth}
 
 \centering{
 
-\includegraphics{manuscript_files/figure-pdf/fig-occupy-combined-2.pdf}
+\pandocbounded{\includegraphics[keepaspectratio]{manuscript_files/figure-pdf/fig-occupy-combined-2.pdf}}
 
 }
 
@@ -1276,7 +1290,7 @@ errors common in manual imperative scripts.
 
 \centering{
 
-\includegraphics{manuscript_files/figure-pdf/fig-ce-plot-1.pdf}
+\pandocbounded{\includegraphics[keepaspectratio]{manuscript_files/figure-pdf/fig-ce-plot-1.pdf}}
 
 }
 
@@ -1284,6 +1298,143 @@ errors common in manual imperative scripts.
 intervals of 1 to 5 years, with all screening episodes numbered.}
 
 \end{figure}%
+
+\section{Changes in Model and Data}\label{changes-in-model-and-data}
+
+\subsubsection{Submodel substitution}\label{submodel-substitution}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# constructor}
+\NormalTok{PartSAModel }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(surv\_pfs, surv\_os, cost\_vector, }
+\NormalTok{                        qaly\_vector, }\AttributeTok{mapping =} \ConstantTok{NA}\NormalTok{, }\AttributeTok{time\_horizon =} \DecValTok{10}\NormalTok{, ...) \{}
+  \FunctionTok{structure}\NormalTok{(}
+    \FunctionTok{list}\NormalTok{(}
+      \AttributeTok{surv\_pfs     =}\NormalTok{ surv\_pfs,     }\CommentTok{\# parametric survival curves}
+      \AttributeTok{surv\_os      =}\NormalTok{ surv\_os,}
+      \AttributeTok{cost\_vector  =}\NormalTok{ cost\_vector,}
+      \AttributeTok{qaly\_vector  =}\NormalTok{ qaly\_vector,}
+      \AttributeTok{mapping      =}\NormalTok{ mapping,      }\CommentTok{\# links tree terminal nodes to baseline survival risk}
+      \AttributeTok{time\_horizon =}\NormalTok{ time\_horizon}
+\NormalTok{    ),}
+    \AttributeTok{class =} \FunctionTok{c}\NormalTok{(}\StringTok{"PartSAModel"}\NormalTok{, }\StringTok{"Model"}\NormalTok{)}
+\NormalTok{  )}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+S3 methods
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#\textquotesingle{} S3 update method: Ingests Decision Tree outputs into PartSA baseline parameters}
+\CommentTok{\#\textquotesingle{} @export}
+\NormalTok{update\_model.PartSAModel }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(model, result) \{}
+  \CommentTok{\# Map tree probabilities to adjust scale or }
+  \CommentTok{\# baseline hazard for each treatment arm}
+\NormalTok{  model}\SpecialCharTok{$}\NormalTok{baseline\_weights }\OtherTok{\textless{}{-}} \FunctionTok{map\_decision\_to\_partsa}\NormalTok{(result, model}\SpecialCharTok{$}\NormalTok{mapping)}
+\NormalTok{  model}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#\textquotesingle{} S3 runner method: Solves the area under the curves}
+\CommentTok{\#\textquotesingle{} @export}
+\NormalTok{run\_model.PartSAModel }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(model) \{}
+  \CommentTok{\# Evaluate partitioned survival areas (PFS, OS {-} PFS, 1 {-} OS)}
+\NormalTok{  out }\OtherTok{\textless{}{-}} \FunctionTok{run\_partsa\_engine}\NormalTok{(}
+    \AttributeTok{pfs\_fit    =}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{surv\_pfs, }
+    \AttributeTok{os\_fit     =}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{surv\_os, }
+    \AttributeTok{weights    =}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{baseline\_weights,}
+    \AttributeTok{horizon    =}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{time\_horizon}
+\NormalTok{  )}
+  
+  \FunctionTok{structure}\NormalTok{(}
+    \FunctionTok{list}\NormalTok{(}
+      \AttributeTok{expected\_cost =} \FunctionTok{sum}\NormalTok{(out}\SpecialCharTok{$}\NormalTok{state\_costs }\SpecialCharTok{*}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{cost\_vector),}
+      \AttributeTok{expected\_eff  =} \FunctionTok{sum}\NormalTok{(out}\SpecialCharTok{$}\NormalTok{state\_qalys }\SpecialCharTok{*}\NormalTok{ model}\SpecialCharTok{$}\NormalTok{qaly\_vector),}
+      \AttributeTok{survival\_mesh =}\NormalTok{ out}\SpecialCharTok{$}\NormalTok{mesh}
+\NormalTok{    ),}
+    \AttributeTok{class =} \FunctionTok{c}\NormalTok{(}\StringTok{"output"}\NormalTok{, }\FunctionTok{class}\NormalTok{(model))}
+\NormalTok{  )}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+Analysis
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Swap Markov for PartSA without touching runner code:}
+\NormalTok{model\_c }\OtherTok{\textless{}{-}} \FunctionTok{PartSAModel}\NormalTok{(}\AttributeTok{surv\_pfs =}\NormalTok{ fit\_pfs, }\AttributeTok{surv\_os =}\NormalTok{ fit\_os, }
+                       \AttributeTok{cost\_vector =}\NormalTok{ cost\_vec, }\AttributeTok{qaly\_vector =}\NormalTok{ util\_vec, }
+                       \AttributeTok{mapping =}\NormalTok{ map\_ps)}
+\NormalTok{chain\_partsa }\OtherTok{\textless{}{-}} \FunctionTok{CombinedModel}\NormalTok{(model\_a, model\_c)}
+
+\CommentTok{\# Identical orchestration call}
+\NormalTok{res\_partsa }\OtherTok{\textless{}{-}} \FunctionTok{run\_model}\NormalTok{(chain\_partsa)}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Structural Adaptations via S3 Class
+Specialisation}\label{structural-adaptations-via-s3-class-specialisation}
+
+When a jurisdiction mandates a structural change---such as an
+alternative long-term extrapolation method or an additional
+post-progression therapy branch---you use class derivation (e.g.,
+\texttt{c("MarkovModel\_PBAC",\ "MarkovModel",\ "Model")}).
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# PBAC structural variant: models continuous PBS dynamic market{-}share erosion}
+\NormalTok{MarkovModel\_PBAC }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(trans\_matrix, costs, utils, }
+                             \AttributeTok{erosion\_rate =} \FloatTok{0.05}\NormalTok{, }\AttributeTok{mapping =} \ConstantTok{NULL}\NormalTok{, ...) \{}
+\NormalTok{  mod }\OtherTok{\textless{}{-}} \FunctionTok{MarkovModel}\NormalTok{(}\AttributeTok{trans\_matrix =}\NormalTok{ trans\_matrix, }\AttributeTok{costs =}\NormalTok{ costs, }
+                     \AttributeTok{utils =}\NormalTok{ utils, }\AttributeTok{mapping =}\NormalTok{ mapping, ...)}
+\NormalTok{  mod}\SpecialCharTok{$}\NormalTok{erosion\_rate }\OtherTok{\textless{}{-}}\NormalTok{ erosion\_rate}
+  \FunctionTok{class}\NormalTok{(mod) }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"MarkovModel\_PBAC"}\NormalTok{, }\FunctionTok{class}\NormalTok{(mod))}
+\NormalTok{  mod}
+\NormalTok{\}}
+
+\CommentTok{\# Specific S3 method dispatch: PBAC applies market{-}share price cuts over cycles}
+\NormalTok{run\_model.MarkovModel\_PBAC }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(model) \{}
+  \CommentTok{\# Apply country{-}specific dynamic erosion adjustment before running}
+\NormalTok{  model}\SpecialCharTok{$}\NormalTok{cost\_vector }\OtherTok{\textless{}{-}} \FunctionTok{apply\_pbs\_erosion}\NormalTok{(model}\SpecialCharTok{$}\NormalTok{cost\_vector, model}\SpecialCharTok{$}\NormalTok{erosion\_rate)}
+  
+  \CommentTok{\# Delegate core execution to base Markov runner}
+  \FunctionTok{NextMethod}\NormalTok{(}\StringTok{"run\_model"}\NormalTok{)}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\texttt{NextMethod()} delegates the heavy matrix operations directly to
+the verified global engine (\texttt{run\_model.MarkovModel}). The
+central orchestrator \texttt{run\_model.CombinedModel} runs without
+touching a line of code.
+
+\section{Discussion}\label{discussion}
+
+Traditional health economic models often bundle clinical pathways, cost
+inputs, and final calculations into a single, rigid script or
+spreadsheet, making them fragile and difficult to update. In contrast,
+our framework applies established software engineering
+standards---specifically the SOLID principles---to create a much more
+robust and adaptable system. By ensuring that each component has only
+one job (Single Responsibility), such as completely separating the
+clinical simulation from the economic payoffs, we drastically reduce the
+risk of errors when updating parameters. Furthermore, the architecture
+is designed so that new components, like a custom jurisdiction profile
+or a new sub-model, can be plugged into the pipeline without altering or
+breaking the core mathematical engine (Open-Closed Principle). Because
+all sub-models communicate through a standardised data contract,
+researchers can swap a Markov model for a different structure with
+confidence that the downstream calculations will still function
+perfectly (Liskov Substitution). Ultimately, this approach moves health
+economic modelling away from bespoke, tangled code and towards a
+transparent, modular infrastructure where each piece can be
+independently tested and trusted.
 
 \section{Conclusion}\label{conclusion}
 
@@ -1308,8 +1459,8 @@ xxx
 \subsection*{References}\label{references}
 \addcontentsline{toc}{subsection}{References}
 
-\phantomsection\label{refs}
-\begin{CSLReferences}{1}{0}
+\protect\phantomsection\label{refs}
+\begin{CSLReferences}{1}{1}
 \bibitem[\citeproctext]{ref-Afonso2023}
 Afonso, D, H Davies, B Avey, and S Mealing. 2023. {``{MSR8 Nesting a
 Decision Tree into a Markov Model Structure: An Alternative Way of
@@ -1317,22 +1468,20 @@ Tracking Movement in a Diagnostic Model}.''} \emph{Value Heal.} 26 (12):
 S394. \url{https://doi.org/10.1016/j.jval.2023.09.2067}.
 
 \bibitem[\citeproctext]{ref-AlaridEscudero2019}
-Alarid-Escudero, Fernando, Eline M. Krijkamp, Eva A. Enns, Alan Yang, M.
-G. Myriam Hunink, Petros Pechlivanoglou, and Hawre J. Jalal. 2019. {``A
-Framework for Decision-Analytic Modeling in {R}: Implementing Tertiary
-Prevention of Colorectal Cancer with a {Markov} Model.''} \emph{Medical
-Decision Making} 39 (2): 175--84.
+Alarid-Escudero, Fernando, Eline M. Krijkamp, Eva A. Enns, et al. 2019.
+{``A Framework for Decision-Analytic Modeling in {R}: Implementing
+Tertiary Prevention of Colorectal Cancer with a {Markov} Model.''}
+\emph{Medical Decision Making} 39 (2): 175--84.
 \url{https://doi.org/10.1177/0272989X18814775}.
 
 \bibitem[\citeproctext]{ref-briggs2006decision}
 Briggs, Andrew, Karl Claxton, and Mark Sculpher. 2006. \emph{Decision
-Modelling for Health Economic Evaluation}. Oxford, UK: Oxford University
-Press.
+Modelling for Health Economic Evaluation}. Oxford University Press.
 
 \bibitem[\citeproctext]{ref-drummond2015methods}
 Drummond, Michael F., Mark J. Sculpher, Karl Claxton, Greg L. Stoddart,
 and George W. Torrance. 2015. \emph{Methods for the Economic Evaluation
-of Health Care Programmes}. 4th ed. Oxford, UK: Oxford University Press.
+of Health Care Programmes}. 4th ed. Oxford University Press.
 
 \bibitem[\citeproctext]{ref-Eddy2012MDM}
 Eddy, David M., William Hollingworth, J. Jaime Caro, Robert Itzler, and
@@ -1342,10 +1491,9 @@ of the {ISPOR-SMDM} Modeling Good Research Practices Task Force--7.''}
 \url{https://doi.org/10.1177/0272989X12454504}.
 
 \bibitem[\citeproctext]{ref-Green2023}
-Green, Nathan, Felicity Lamrock, Niamh Naylor, Miqdad Asaria, Mark
-Strong, Chris Taylor, Dougie van der Wielen, and Marta O. Soares. 2023.
-{``Health Economic Evaluation Using Markov Models in r for Microsoft
-Excel Users: A Tutorial.''} \emph{PharmacoEconomics} 41 (1): 5--19.
+Green, Nathan, Felicity Lamrock, Niamh Naylor, et al. 2023. {``Health
+Economic Evaluation Using Markov Models in r for Microsoft Excel Users:
+A Tutorial.''} \emph{PharmacoEconomics} 41 (1): 5--19.
 \url{https://doi.org/10.1007/s40273-022-01199-7}.
 
 \bibitem[\citeproctext]{ref-Hazen2002}
@@ -1355,18 +1503,14 @@ Environment: Models and Software for Medical Decision Analysis}.''}
 
 \bibitem[\citeproctext]{ref-hollenberg1984markov}
 Hollenberg, JP. 1984. {``Markov Cycle Trees-a New Representation for
-Complex Markov-Processes.''} In \emph{Medical Decision Making},
-4:529--29. 4. Hanley \& Belfus Inc 210 S 13th St, Philadelphia, PA
-19107.
+Complex Markov-Processes.''} \emph{Medical Decision Making} 4: 529--29.
 
 \bibitem[\citeproctext]{ref-husereau_consolidated_2022}
-Husereau, Don, Michael Drummond, Federico Augustovski, Esther de
-Bekker-Grob, Andrew H. Briggs, Chris Carswell, Lisa Caulley, et al.
-2022. {``Consolidated {Health} {Economic} {Evaluation} {Reporting}
-{Standards} 2022 ({CHEERS} 2022) {Statement}: {Updated} {Reporting}
-{Guidance} for {Health} {Economic} {Evaluations}.''} \emph{Value in
-Health} 25 (January): 3--9.
-\url{https://doi.org/10.1016/j.jval.2021.11.1349}.
+Husereau, Don, Michael Drummond, Federico Augustovski, et al. 2022.
+{``Consolidated {Health} {Economic} {Evaluation} {Reporting} {Standards}
+2022 ({CHEERS} 2022) {Statement}: {Updated} {Reporting} {Guidance} for
+{Health} {Economic} {Evaluations}.''} \emph{Value in Health} 25
+(January): 3--9. \url{https://doi.org/10.1016/j.jval.2021.11.1349}.
 
 \bibitem[\citeproctext]{ref-Jalal2017}
 Jalal, Hawre, Petros Pechlivanoglou, Eline Krijkamp, Fernando
@@ -1375,11 +1519,10 @@ of {R} in Health Decision Sciences.''} \emph{Medical Decision Making} 37
 (7): 735--46. \url{https://doi.org/10.1177/0272989X16679605}.
 
 \bibitem[\citeproctext]{ref-Kent2019}
-Kent, Seamus, Frauke Becker, Talitha Feenstra, An Tran-Duy, Iryna
-Schlackow, Michelle Tew, Ping Zhang, et al. 2019. {``The Challenge of
-Transparency and Validation in Health Economic Decision Modelling: A
-View from Mount Hood.''} \emph{PharmacoEconomics} 37 (11): 1305--12.
-\url{https://doi.org/10.1007/s40273-019-00825-1}.
+Kent, Seamus, Frauke Becker, Talitha Feenstra, et al. 2019. {``The
+Challenge of Transparency and Validation in Health Economic Decision
+Modelling: A View from Mount Hood.''} \emph{PharmacoEconomics} 37 (11):
+1305--12. \url{https://doi.org/10.1007/s40273-019-00825-1}.
 
 \bibitem[\citeproctext]{ref-Krijkamp2018}
 Krijkamp, Eline M., Fernando Alarid-Escudero, Eva A. Enns, Hawre J.
@@ -1401,15 +1544,14 @@ Research Tool Coded in {R}.''} \emph{PharmacoEconomics - Open} 7 (4):
 
 \bibitem[\citeproctext]{ref-rlanguage}
 R Core Team. 2025. \emph{R: A Language and Environment for Statistical
-Computing}. Vienna, Austria: R Foundation for Statistical Computing.
+Computing}. R Foundation for Statistical Computing.
 \url{https://www.R-project.org/}.
 
 \bibitem[\citeproctext]{ref-Sandercock2004}
-Sandercock, Peter, Eivind Berge, Martin Dennis, John Forbes, Philip
-Gorelick, Graeme Hankey, Richard Lindley, Joanna Wardlaw, and Charles
-Warlow. 2004. {``Cost-Effectiveness of Thrombolysis with Recombinant
-Tissue-Type Plasminogen Activator for Acute Ischemic Stroke: Assessed by
-a Model Based on {UK} {NHS} Costs.''} \emph{Stroke} 35 (6): 1490--97.
+Sandercock, Peter, Eivind Berge, Martin Dennis, et al. 2004.
+{``Cost-Effectiveness of Thrombolysis with Recombinant Tissue-Type
+Plasminogen Activator for Acute Ischemic Stroke: Assessed by a Model
+Based on {UK} {NHS} Costs.''} \emph{Stroke} 35 (6): 1490--97.
 \url{https://doi.org/10.1161/01.STR.0000128706.77784.b8}.
 
 \bibitem[\citeproctext]{ref-vctrs2026}
@@ -1433,7 +1575,7 @@ Issues and Potential Solutions.''} \emph{PharmacoEconomics} 37 (11):
 
 \centering{
 
-\includegraphics[width=1\textwidth,height=\textheight]{UML.png}
+\includegraphics[width=1\linewidth,height=\textheight,keepaspectratio]{UML.png}
 
 }
 

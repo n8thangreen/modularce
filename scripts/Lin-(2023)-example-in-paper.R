@@ -420,4 +420,40 @@ results_table <- tibble(
   )
 
 print(results_table)
-cat("\nAnalysis complete!\n")
+
+# # original scenario runner ---
+# 
+# all_results <- list()
+# dt <- DecisionTree(decision_tree)
+# scenario_count <- 1
+# 
+# for (t_val in t_between_screens) {
+#   mm_scenario <- 
+#     MarkovModel(trans_matrix = trans_prob_mat,
+#                 cost_matrix = cost_mat,
+#                 q_matrix = q_mat,
+#                 init_probs = p_init,
+#                 mapping = mapping,
+#                 n_cycles = t_val)
+#   pair_model_scenario <- 
+#     CombinedModel(dt, mm_scenario)
+#   
+#   for (n_scr in num_screens) {
+#     screening_submodels <- 
+#       rep(pair_model_scenario, n_scr)
+#     screening_model <- 
+#       do.call(CombinedModel, 
+#               args = screening_submodels)
+#     results_scenario <- 
+#       run_model(screening_model)
+#     result_label <- 
+#       paste0("t_between_", t_val, 
+#              "_screens_", n_scr)
+#     all_results[[result_label]] <- list(
+#       t_between_screens = t_val,
+#       num_screens = n_scr,
+#       results = results_scenario)
+#     scenario_count <- scenario_count + 1
+#   }
+# }
+
