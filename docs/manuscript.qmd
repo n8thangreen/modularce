@@ -8,11 +8,8 @@ author:
     corresponding: true
 abstract: |
   **Background:** A cost-effectiveness analysis (CEA) compares an intervention to one or more alternatives by estimating how much it costs to gain an additional unit of health outcome. In recent years there has been a shift in implementing these models in programmatic languages better suited to more sophisticated models, model checking and advanced visualisations.
-
   **Problem:** It is common for a CEA model to consist of multiple separate submodel components, such as those which combine decision trees and Markov models. However, there are important limitations to the traditional approach of implementing component models either disjointly and manually passing input and output data between them, or as a single ad-hoc script making clarity and testing a challenge.
-
   **Solution:** We propose a unified framework that integrates these submodels using declarative programming and S3 object-oriented programming in the R programming language. This approach addresses several issues associated with the separated or script-based approaches, such as extensibility, flexibility, and efficiency. We provide a detailed explanation of the unified framework and demonstrate its practical application using a motivating example of a CEA model involving multiple screening sessions over a lifetime where, at the point of every screening session, individuals can be redistributed across health states based on their screening results.
-
   **Conclusions:** By better integrating component models, the proposed framework enhances the robustness, transparency, and efficiency of CEA, ultimately leading to improved informed decision-making in healthcare and other fields.
 bibliography: biblio.bib
 format:
@@ -32,65 +29,237 @@ execute:
   message: false
 editor_options: 
   chunk_output_type: console
+editor: 
+  markdown: 
+    wrap: 72
 ---
 
 # Introduction
 
-Cost-effectiveness analysis (CEA) in healthcare is the comparative assessment of alternative courses of action, evaluating both their relative costs and downstream consequences [@drummond2015methods]. To conduct these evaluations, health economists frequently rely on mathematical modelling. These models are becoming more powerful and complex. One feature of this is that models may consist of multiple linked components designed to capture different phases of a disease or treatment pathway.
+Cost-effectiveness analysis (CEA) in healthcare is the comparative
+assessment of alternative courses of action, evaluating both their
+relative costs and downstream consequences [@drummond2015methods]. To
+conduct these evaluations, health economists frequently rely on
+mathematical modelling. These models are becoming more powerful and
+complex. One feature of this is that models may consist of multiple
+linked components designed to capture different phases of a disease or
+treatment pathway.
 
-In particular, a widely used structural approach in CEA combines a two-part model. This is particularly common when evaluating pathways such as population screening programs or acute hospital care [@Sandercock2004]. This consists of an initial stage where a decision-making process and intervention are undertaken. An individual would be evaluated and treated according to certain deterministic and random considerations. The subsequent stage simulates the consequences of the first stage on the population depending on the previous results [@briggs2006decision]. For example, individuals may be invited to screening and given treatment according to the results of an imperfect test. Then their long term outcomes are estimated, with the population split into true positive, true negative, false positive and false negatives who may or may not have agreed to take the treatment which may not have been effective. Outcomes for the second stage may include progression to disease, side effects from treatment, and mortality.
+In particular, a widely used structural approach in CEA combines a
+two-part model. This is particularly common when evaluating pathways
+such as population screening programs or acute hospital care
+[@Sandercock2004]. This consists of an initial stage where a
+decision-making process and intervention are undertaken. An individual
+would be evaluated and treated according to certain deterministic
+considerations. The subsequent stage simulates the consequences of the
+first stage on the population depending on the previous results
+[@briggs2006decision]. For example, individuals may be invited to
+screening and given treatment according to the results of an imperfect
+test. Then their long term outcomes are estimated, with the population
+split into true positive, true negative, false positive and false
+negatives who may or may not have agreed to take the treatment which may
+not have been effective. Outcomes for the second stage may include
+progression to disease, side effects from treatment, and mortality.
 
-There are general modelling and software engineering issues with the legacy multiple component modelling approach. These are either disjoint models or ad-hoc single scripts. This produces models which are error prone, hard to test, reproduce or extend. In HTA projects it is often required to modify or repurpose existing models, and the existing approach can be inefficient and time consuming. In addition, it is usual in a cost-effectiveness analysis to explore several (possibly many) alternative interventions. Each of these may have different sets of unit costs, health values, probabilities and possibly (but less common) model structure. This would require the management of these alongside the plugging in of model output as model inputs between components. The analysis pipeline or workflow thus has potentially many 'moving parts', any one of which can introduce a bug or error which would affect the calculation and the optimal decision.
+There are general modelling and software engineering issues with the
+legacy multiple component modelling approach. These are either disjoint
+models or ad-hoc single scripts. This produces models which can be error
+prone, hard to test, reproduce or extend. In HTA projects it is often
+required to modify or re-purpose existing models, and the existing
+approach can be inefficient and time consuming. In addition, it is usual
+in a cost-effectiveness analysis to explore several (possibly many)
+alternative interventions. Each of these may have different sets of unit
+costs, health values, probabilities and possibly (but less common) model
+structure. This would require the management of these alongside the
+plugging in of model output as model inputs between components. The
+analysis pipeline or workflow thus has potentially many 'moving parts',
+any one of which can introduce a bug and/or make it harder to
+efficiently propagate uncertainty throughout the model(s).
 
-There appears a consensus that modern code for health economics modelling is not fit for purpose. @Kent2019 and @Wu2019 argue that there is often a lack of clear code structure in health economics models which makes it difficult for third parties to validate them. We will propose an approach which solves this by making the pipeline visible and not buried in nested loops. This sentiment is repeated in @Eddy2012MDM, who state that a model should be "reproducible by another team of investigators." @AlaridEscudero2019 explicitly discuss the need for modularity, highlighting that complex models should be broken down into reusable components to reduce the risk of "technical debt" and error rates. @Jalal2017 discusses how although R is powerful it lacks a standard structure and so modelling code is often poorer for it. They advocate for formal structures to ensure models can be audited. @Krijkamp2018 provide a checklist that emphasizes modularity and input-output consistency. We will propose a way to formalize the "hand-off" that is usually handled with messy global variables.
+There appears a consensus that modern code for health economics
+modelling is not fit for purpose. @Kent2019 and @Wu2019 argue that there
+is often a lack of clear code structure in health economics models which
+makes it difficult for third parties to validate them. Additionally, to
+implement appropriate testing and validation assertions within current
+standard coding frameworks requires multiple manual instrumenting.
 
-@Krijkamp2018 adopt a 'bridge' or data translator function to map between models. This formalises how to distribute individuals across starting state of the long-term model. This is an improvement from the hard-coded implementation often seen in other models. However, this is still part of a sequential script rather than a formalised framework. We propose going beyond simply 'good coding style' to 'software engineering' practice. They manually chain components but this can be managed or 'orchestrated' automatically as part of the framework.
+We will propose an approach which solves this by making the pipeline
+visible and not buried in nested loops. This sentiment is repeated in
+@Eddy2012MDM, who state that a model should be "reproducible by another
+team of investigators." @AlaridEscudero2019 explicitly discuss the need
+for modularity, highlighting that complex models should be broken down
+into reusable components to reduce the risk of "technical debt" and
+error rates. @Jalal2017 discusses how although R is powerful it lacks a
+standard structure and so modelling code is often poorer for it. They
+advocate for formal structures to ensure models can be audited.
+@Krijkamp2018 provide a checklist that emphasizes modularity and
+input-output consistency. We will propose a way to formalize the
+"hand-off" that is usually handled with messy global variables.
 
-Although CEA models have been traditionally built in Microsoft Excel, their increasing sophistication has driven a shift toward computational programming languages like R [@rlanguage]. Despite this transition, the field has largely failed to adopt modern programming paradigms. In particular, analysts often treat interconnected submodels as isolated scripts, missing the opportunity to leverage the architectural benefits of a programmatic framework. In software engineering, integrating separate components into a unified system is a well-established discipline that relies on a modular approach—breaking a program into distinct, functional blocks which interact with one another in standardised ways. Thus, a practical demonstration of how to straightforwardly implement multi-component CEA models following software engineering best practices could address this gap.
+@Krijkamp2018 adopt a 'bridge' or data translator function to map
+between models. This formalises how to distribute individuals across
+starting state of the long-term model. This is an improvement from the
+hard-coded implementation often seen in other models. However, this is
+still part of a sequential script rather than a formalised framework. We
+propose going beyond simply 'good coding style' to 'software
+engineering' practice. They manually chain components but this can be
+managed or 'orchestrated' automatically as part of the framework.
+
+Although CEA models have been traditionally built in Microsoft Excel,
+their increasing sophistication has driven a shift toward computational
+programming languages like R [@rlanguage], potentially accelerated with
+the use of generative artificial intelligence and 'vibe coding' in
+creating evaluative models. Despite this transition, the field has
+largely failed to adopt modern programming paradigms. In particular,
+analysts often treat interconnected submodels as isolated scripts,
+missing the opportunity to leverage the architectural benefits of a
+programmatic framework. In software engineering, integrating separate
+components into a unified system is a well-established discipline that
+relies on a modular approach; breaking a program into distinct,
+functional blocks which interact with one another in standardised ways.
+Thus, a practical demonstration of how to straightforwardly implement
+multi-component CEA models following software engineering best practices
+could address this gap.
 
 # General problem
 
-As an example which we will keep returning to in this article, we will consider a particular type of the two-stage model already introduced. This process can be represented with a decision tree model (DT) and Markov model (MM). These are often used in combination to represent acute or short-term, and chronic or long-term (population) impacts since DTs do not explicitly represent time, unlike MM. An order of operation is as follows:
+As an example which we will keep returning to in this article, we will
+consider a particular type of the two-stage model already introduced.
+This process can be represented with a decision tree model (DT) and
+Markov model (MM). These are often used in combination to represent
+acute or short-term, and chronic or long-term (population) impacts since
+DTs do not explicitly represent time, unlike MM. An order of operation
+is as follows:
 
-i. Read in external data model inputs
-ii. Simulate the population sizes (or proportions) of the terminal state, and health and cost for the DT model
+i.  Read in external data model inputs
+ii. Simulate the population sizes (or proportions) of the terminal
+    state, and health and cost for the DT model
 iii. Pass the DT output to the MM as input
 iv. Simulate the health and cost values for the MM
-v. Pass the DT and MM outputs to the Decision model
+v.  Pass the DT and MM outputs to the Decision model
 vi. Process the combined results of the DT and MM
-vii. Repeat steps (i)-(vi) for a probabilistic sensitivity analysis (PSA)
+vii. Repeat steps (i)-(vi) for a probabilistic sensitivity analysis
+     (PSA)
 
-This process is represented in the flowchart in @fig-flowchart-combined. The data may be passed amongst the modules directly, which is reasonable with the same software. Alternatively, the data may be stored externally in intermediate steps and then read in when required. The diagram can be read roughly from left to right, corresponding to (i) to (vi) above. It is not uncommon for different submodels to be implemented in different software such as MS Excel, R, Python, and Stata. We will not detail the inference stage where the parameters of the model are estimated. This can be done in a frequentist or Bayesian paradigm.
+This process is represented in the flowchart in @fig-flowchart-combined.
+The data may be passed among the modules directly, which is reasonable
+with the same software. Alternatively, the data may be stored externally
+in intermediate steps and then read in when required. The diagram can be
+read roughly from left to right, corresponding to (i) to (vi) above. It
+is not uncommon for different submodels to be implemented in different
+software such as MS Excel, R, Python, and Stata. We will not detail the
+inference stage where the parameters of the model are estimated. This
+can be done in a frequentist or Bayesian paradigm.
 
-There are already several excellent tutorials on how to build simple DT models or MM for cost-effectiveness analysis. The intention of this paper is to build on these and develop the scope of applications to more realistic problems encountered in industry and regulatory submissions. It was sensible to start with simpler tutorials when people from other software, such as MS Excel, are brought to programmatic implementations such as R, but there is a desire now to further develop the available toolkit and skill in the field.
+There are already several excellent tutorials on how to build simple DT
+models or MM for cost-effectiveness analysis. The intention of this
+paper is to build on these and develop the scope of applications to more
+realistic problems encountered in industry and regulatory submissions.
+It was sensible to start with simpler tutorials when people from other
+software, such as MS Excel, are brought to programmatic implementations
+such as R, but there is a desire now to further develop the available
+toolkit and skill in the field.
 
-![Swimlane flowchart diagram for a cost-effectiveness model comprised of a decision tree model followed by a Markov model. Boxes represent processes; parallelograms are input/output; cylinders are stored data; circle with cross is merge. The solid lines indicate where the data are passed between modules directly, and the grey dashed lines indicate where the data are passed between modules via external file storage.](swimline-new.png){#fig-flowchart-combined width=90%}
+\[#COMMENT: still not sure this figure is particularly useful\]
+
+![Swimlane flowchart diagram for a cost-effectiveness model comprised of
+a decision tree model followed by a Markov model. Boxes represent
+processes; parallelograms are input/output; cylinders are stored data;
+circle with cross is merge. The solid lines indicate where the data are
+passed between modules directly, and the grey dashed lines indicate
+where the data are passed between modules via external file
+storage.](swimline-new.png){#fig-flowchart-combined width="90%"}
 
 # A unified framework
 
-In this paper, we propose a unified and structured approach to building cost-effectiveness models using declarative rather than imperative programming. Unlike the traditional imperative approach — where the programmer manually manages every computational step to dictate how a task is carried out — declarative programming focuses on logically describing what the program should accomplish. Key characteristics of this approach include the abstraction of control flow and the automatic handling of background implementation details. In the context of unifying a decision tree (DT) and Markov model (MM), this framework simplifies the simulation and cost-effectiveness calculations while automatically managing the flow of data between modules.
+In this paper, we propose a unified and structured approach to building
+cost-effectiveness models using declarative rather than imperative
+programming. Unlike the traditional imperative approach — where the
+programmer manually manages every computational step to dictate how a
+task is carried out — declarative programming focuses on logically
+describing what the program should accomplish. Key characteristics of
+this approach include the abstraction of control flow and the automatic
+handling of background implementation details. In the context of
+unifying a decision tree (DT) and Markov model (MM), this framework
+simplifies the simulation and cost-effectiveness calculations while
+automatically managing the flow of data between modules.
 
-This framework does not replace good modelling practice, such as modularity, but rather supports and strengthens it. While some might worry that bundling parts of a model together (i.e., increasing "coupling") can make code harder to manage, our framework is designed to avoid these problems and instead promote clarity, reusability, and scalability. Through reframing an existing model, we highlight the benefits of moving to an object-oriented programming (OOP) approach.
+This framework does not replace good modelling practice, such as
+modularity, but rather supports and strengthens it. While some might
+worry that bundling parts of a model together (i.e., increasing
+"coupling") can make code harder to manage, our framework is designed to
+avoid these problems and instead promote clarity, reusability, and
+scalability. Through reframing an existing model, we highlight the
+benefits of moving to an object-oriented programming (OOP) approach.
 
-In practical terms, this approach simplifies and clarifies key aspects of the modelling process. Specifically, it streamlines how simulations are executed (e.g., cohort transitions through a DT or MM), how costs and health outcomes are calculated, and how data seamlessly flows between distinct model components.
+In practical terms, this approach simplifies and clarifies key aspects
+of the modelling process. Specifically, it streamlines how simulations
+are executed (e.g., cohort transitions through a DT or MM), how costs
+and health outcomes are calculated, and how data seamlessly flows
+between distinct model components.
+
+\[#COMMENT: the above section reads a bit repetitive to the
+intro/general problem sections - could probably reduce or remove
+altogether?\]
 
 # S3 and object-oriented programming in R
 
-A cornerstone of our approach is the use of S3 OOP in R. The broader statistical computing and data science communities have long leveraged R's native S3 object-oriented system to unify disparate modelling architectures, notably seen in the *tidymodels* [@tidymodels] ecosystem. Meanwhile, health technology assessment (HTA) tutorials have largely overlooked this approach. Current HTA model development in R typically relying on rigid, imperative scripting that mimics legacy spreadsheet logic. We demonstrate how S3 method dispatch can serve as a lightweight, native adaptor to seamlessly link sequential model components (e.g., decision trees and Markov models) into a unified pipeline. @tbl-s3classes gives an overview of some common S3 object classes in R.
+A cornerstone of our approach is the use of S3 OOP in R. The broader
+statistical computing and data science communities have long leveraged
+R's native S3 object-oriented system to unify disparate modelling
+architectures, notably seen in the *tidymodels* [@tidymodels] ecosystem.
+Meanwhile, health technology assessment (HTA) tutorials have largely
+overlooked this approach. Current HTA model development in R typically
+relying on rigid, imperative scripting that mimics legacy spreadsheet
+logic. We demonstrate how S3 method dispatch can serve as a lightweight,
+native adaptor to seamlessly link sequential model components (e.g.,
+decision trees and Markov models) into a unified pipeline.
+@tbl-s3classes gives an overview of some common S3 object classes in R.
 
-S3 OOP helps to manage model structure more cleanly. For instance, we can define a *generic* function like `print()` or `summarize()` that works differently depending on the type of object it is applied to (e.g., a DT vs. a MM). R automatically chooses the correct method based on the *class* of the input, a process known as method *dispatch*. In R, S3 class is just a standard R data structure (usually a list) that has a class attribute assigned to it.
+S3 OOP helps to manage model structure more cleanly. For instance, we
+can define a *generic* function like `print()` or `summarize()` that
+works differently depending on the type of object it is applied to
+(e.g., a DT vs. a MM). R automatically chooses the correct method based
+on the *class* of the input, a process known as method *dispatch*. In R,
+S3 class is just a standard R data structure (usually a list) that has a
+class attribute assigned to it.
 
-By decoupling the generic interface from its specific implementation, this approach facilitates highly reusable code. Instead of maintaining separate simulation functions for distinct model structures, an analyst can define a single common interface. R's internal method dispatch mechanism then automatically executes the correct subroutine. In OOP terminology, this is called *polymorphism*. This architectural shift provides several key methodological advantages:
+For example, when `print()` is used on a data.frame, it recognizes the
+input as a data.frame, it then uses a pre-defined function
+`print.data.frame()` which takes the input to be two-dimensional tabular
+dataset and formats the output into a grid to print with columns and
+rows. Whereas, if the the input to `print()` is a list it uses
+`print.default()` which takes the input to be a recursive holder of
+heterogeneous objects and will print each element by element using \$.
 
-* **Unification:** Disparate model types (e.g., decision trees and Markov models) can be manipulated through a single, consistent syntax.
-* **Efficiency:** It minimizes code redundancy and reduces the risk of manual transcription errors.
-* **Maintainability:** It yields a modular codebase that is easier to debug, audit, and extend.
-* **Extensibility:** It permits the addition of novel model structures or summary functions without necessitating changes to the core logic.
+By decoupling the generic interface from its specific implementation,
+this approach facilitates highly reusable code. Instead of maintaining
+separate simulation functions for distinct model structures, an analyst
+can define a single common interface. R's internal method dispatch
+mechanism then automatically executes the correct subroutine. In OOP
+terminology, this is called *polymorphism*. This architectural shift
+provides several key methodological advantages:
 
-Ultimately, deploying S3 object-oriented programming formalizes cost-effectiveness models as distinct computational objects with consistent behaviours, substantially enhancing analytical extensibility, transparency and structural flexibility.
+-   **Unification:** Disparate model types (e.g., decision trees and
+    Markov models) can be manipulated through a single, consistent
+    syntax.
+-   **Efficiency:** It minimizes code redundancy and reduces the risk of
+    manual transcription errors.
+-   **Maintainability:** It yields a modular codebase that is easier to
+    debug, audit, and extend.
+-   **Extensibility:** It permits the addition of novel model structures
+    or summary functions without necessitating changes to the core
+    logic.
+-   **Robustness:** It lends itself to assertions being consistently
+    implemented across model inputs, processes and outputs.
+
+Ultimately, deploying S3 object-oriented programming formalizes
+cost-effectiveness models as distinct computational objects with
+consistent behaviours, substantially enhancing analytical extensibility,
+transparency and structural flexibility.
 
 | S3 Class | Description |
-|:---|:---|
+|:-----------------------------------|:-----------------------------------|
 | `data.frame` | A tabular data structure with rows and columns. Most common S3 class in R. |
 | `lm` | Linear model object created by `lm()`. Stores coefficients, residuals, etc. |
 | `factor` | A categorical variable with levels. Internally stored as integers with labels. |
@@ -100,7 +269,10 @@ Ultimately, deploying S3 object-oriented programming formalizes cost-effectivene
 
 ## R code S3 example
 
-Below is a full example of using S3 method dispatch in R. We define a custom generic function to print to the console `printModel()` and two class-specific methods for objects of class "`MarkovModel`" and "`DiseaseModel`".
+Below is a full example of using S3 method dispatch in R. We define a
+custom generic function to print to the console `printModel()` and two
+class-specific methods for objects of class "`MarkovModel`" and
+"`DiseaseModel`".
 
 ```{r}
 # Create a generic function for printing model objects
@@ -139,23 +311,64 @@ printModel(x1)
 printModel(x2)
 ```
 
-This demonstrates the core idea behind S3 where the method dispatch depends on the class of the object passed to `printModel()`. Additionally, objects can have more than one class and in this case methods are dispatched in sequence.
+This demonstrates the core idea behind S3 where the method dispatch
+depends on the class of the object passed to `printModel()`.
+Additionally, objects can have more than one class and in this case
+methods are dispatched in sequence.
 
-Although the primary example in this paper focuses on using S3 to manage macro-level workflows—specifically the integration of modular `DecisionTree` and `MarkovModel` objects—the benefits of OOP extend equally to micro-level data management. We strongly recommend that analysts assign explicit classes to granular, user-defined types, such as cost, QALY, or probability. In legacy imperative scripting, health economists frequently rely on standard numeric arrays or data frames, forcing them to clutter their functions with repetitive assert or `stopifnot` statements to prevent silent data-type errors (e.g., inadvertently multiplying a cost vector by another cost vector instead of a probability). By replacing these fundamental inputs with S3 classes, analysts can leverage method dispatch to handle validation and operations elegantly. For example, a generic `discount()` or `convert_country()` function can be designed to apply entirely different logic depending on whether it receives a cost object or a QALY object, ensuring robust, type-safe calculations throughout the model pipeline.
+Although the primary example in this paper focuses on using S3 to manage
+macro-level workflows—specifically the integration of modular
+`DecisionTree` and `MarkovModel` objects—the benefits of OOP extend
+equally to micro-level data management. We strongly recommend that
+analysts assign explicit classes to granular, user-defined types, such
+as cost, QALY, or probability. In legacy imperative scripting, health
+economists frequently rely on standard numeric arrays or data frames,
+forcing them to clutter their functions with repetitive assert or
+`stopifnot` statements to prevent silent data-type errors (e.g.,
+inadvertently multiplying a cost vector by another cost vector instead
+of a probability). By replacing these fundamental inputs with S3
+classes, analysts can leverage method dispatch to handle validation and
+operations elegantly. For example, a generic `discount()` or
+`convert_country()` function can be designed to apply entirely different
+logic depending on whether it receives a cost object or a QALY object,
+ensuring robust, type-safe calculations throughout the model pipeline.
 
 ## Model composition
 
-To use computer science terminology, *function chaining* is a common implementation of what is generally called function *composition* (mathematically written $f(g(x))$), especially in object-oriented programming. In particular, a function that changes an output to something that can be used as an input to the next function is sometimes called a *transformation* function. This is what is required in our case to pipe from one model to the next. We can elegantly chain models using S3 OOP.
+To use computer science terminology, *function chaining* is a common
+implementation of what is generally called function *composition*
+(mathematically written $f(g(x))$), especially in object-oriented
+programming. In particular, a function that changes an output to
+something that can be used as an input to the next function is sometimes
+called a *transformation* function. This is what is required in our case
+to pipe from one model to the next. We can elegantly chain models using
+S3 OOP.
 
 ## System architecture
 
-In an OOP architecture, managing the data flow between distinct components requires specific functional roles. To begin, *constructor* functions are required to instantiate the objects. These functions take raw input data and format them into a classed object (e.g., turning a standard list into a formal `DecisionTree` or `MarkovModel` object) so that generic functions know how to interact with it.
+In an OOP architecture, managing the data flow between distinct
+components requires specific functional roles. To begin, *constructor*
+functions are required to instantiate the objects. These functions take
+raw input data and format them into a classed object (e.g., turning a
+standard list into a formal `DecisionTree` or `MarkovModel` object) so
+that generic functions know how to interact with it.
 
-Once the objects are instantiated, linking different model components seamlessly relies on the "Adaptor pattern". In software engineering, an adaptor allows objects with incompatible interfaces to work together. For health economists, this can be thought of as a standardized "data translator".
+Once the objects are instantiated, linking different model components
+seamlessly relies on the "Adaptor pattern". In software engineering, an
+adaptor allows objects with incompatible interfaces to work together.
+For health economists, this can be thought of as a standardized "data
+translator".
 
-For example, a DT might output a simple vector of patient proportions, but a MM might require a specific starting cohort matrix. Rather than cluttering the main analysis script with ad-hoc data manipulation code to bridge this gap, the Adaptor pattern acts as a dedicated bridge. This automatically converts the output of the source model into the exact format expected by the target model. This is implemented by wrapping the model execution in a function that handles the translation seamlessly behind the scenes:
+For example, a DT might output a simple vector of patient proportions,
+but a MM might require a specific starting cohort matrix. Rather than
+cluttering the main analysis script with ad-hoc data manipulation code
+to bridge this gap, the Adaptor pattern acts as a dedicated bridge. This
+automatically converts the output of the source model into the exact
+format expected by the target model. This is implemented by wrapping the
+model execution in a function that handles the translation seamlessly
+behind the scenes:
 
-```r
+``` r
 modelfun.modelclass <- function(x, ...) {
 # 1. Translate incoming data into a format the model needs
 # 2. Execute the model
@@ -163,18 +376,44 @@ modelfun.modelclass <- function(x, ...) {
 }
 ```
 
-Finally, to manage the end-to-end execution of these linked models, an *orchestrator* function is employed. The orchestrator is responsible for iterating through the chain of assembled models, executing each one, and triggering the appropriate adaptors to pass the output of one model directly into the input of the next.
+Finally, to manage the end-to-end execution of these linked models, an
+*orchestrator* function is employed. The orchestrator is responsible for
+iterating through the chain of assembled models, executing each one, and
+triggering the appropriate adaptors to pass the output of one model
+directly into the input of the next.
+
+\[#COMMENT: I think here a figure would be more useful than current
+figure 1, showing the flow of and examples of CONSTRUCTOR –\> ADAPTOR
+–\> OCHESTRATOR, maybe with the print() example or another one which
+base R/familiar package e.g. data.table uses\]
 
 # Case study: Multiple screening episodes
 
-We reframe a previously published screening CEA model, built for the purposes of teaching and training in R [@lin2023simple]. The example will demonstrate the different implementation approaches in a real-world case study. This is a CEA model that involves multiple screening sessions over a lifetime where, at the point of every screening session, individuals can be redistributed across health states in a MM based on their screening results [@Afonso2023; @Hazen2002; @hollenberg1984markov].
+We reframe a previously published screening CEA model, built for the
+purposes of teaching and training in R [@lin2023simple]. The example
+will demonstrate the different implementation approaches in a real-world
+case study. This is a CEA model that involves multiple screening
+sessions over a lifetime where, at the point of every screening session,
+individuals can be redistributed across health states in a MM based on
+their screening results [@Afonso2023; @Hazen2002;
+@hollenberg1984markov].
+
+\[#COMMENT: trying to add a line to make it explicitly clear that the
+results aren't going to match the paper because its a different model
+"black box" we use? i think?\]. We take the data and premise of the
+aforementioned screening model but utilise a different model \[for
+simplicity\]??
 
 ## Data
 
-The scenarios included are for five screening intervals of 2, 5, 10, 15, 20 years, and six total number of screening episodes 1, 2, 3, 4, 5, 10. @fig-screening-model shows the high-level diagram of the screening model from @lin2023simple. The Markov model and decision tree diagrams are shown in @fig-markov-model and @fig-decision-tree-model.
+The scenarios included are for five screening intervals of 2, 5, 10, 15,
+20 years, and six total number of screening episodes 1, 2, 3, 4, 5, 10.
+@fig-screening-model shows the high-level diagram of the screening model
+from @lin2023simple. The Markov model and decision tree diagrams are
+shown in @fig-markov-model and @fig-decision-tree-model.
 
-The data for the Markov model consist of the state transition probability matrix
-$$
+The data for the Markov model consist of the state transition
+probability matrix $$
 P = \begin{bmatrix}
 0.9 & 0.05 & 0 & 0 & 0 & 0.05 \\
 0 & 0.65 & 0.2 & 0 & 0.1 & 0.05 \\
@@ -183,13 +422,11 @@ P = \begin{bmatrix}
 0 & 0 & 0 & 0 & 1.0 & 0 \\
 0 & 0 & 0 & 0 & 0 & 1
 \end{bmatrix}
-$$
-and the unit state cost and health attributes are
-$$
+$$ and the unit state cost and health attributes are $$
 \mathbf{c}^{M} = (0, 0, 0, 100, 0, 0)^{\top}, \quad \mathbf{u}^{M} = (1, 0.8, 0.5, 0.9, 0, 0)^{\top}
-$$
-The $M$ superscript indicates that these are for the Markov model. The data for the decision tree consist of the conditional transition probabilities along each branch
-$$
+$$ The $M$ superscript indicates that these are for the Markov model.
+The data for the decision tree consist of the conditional transition
+probabilities along each branch $$
 \begin{aligned}
 P(\text{FP} \mid \text{Healthy}) &= 0.1 \\
 P(\text{TN} \mid \text{Healthy}) &= 0.9 \\[6pt]
@@ -198,32 +435,70 @@ P(\text{FN} \mid \text{Pre-clinical}) &= 0.3 \\[6pt]
 P(\text{TP} \mid \text{Disease}) &= 1.0 \\
 P(\text{FN} \mid \text{Disease}) &= 0.0
 \end{aligned}
-$$
-and terminal state costs $c^{D}(x) = 200$ if TP or FP, and $c^{D}(x) = 50$ if TN or FN. The $D$ superscript indicates that these are for the decision tree.
+$$ and terminal state costs $c^{D}(x) = 200$ if TP or FP, and
+$c^{D}(x) = 50$ if TN or FN. The $D$ superscript indicates that these
+are for the decision tree.
 
-Finally, the initial distribution of individuals amongst the states of the Markov model is defined as
-$$
+Finally, the initial distribution of individuals amongst the states of
+the Markov model is defined as $$
 \mathbf{\pi}_0 = (0.80, 0.15, 0.05, 0, 0, 0)^{\top}
-$$
-Notice that the simulation begins with a decision tree model screening round. The distribution of individuals at the start of a screening episode is represented with the branches from the root node of the decision tree which are therefore time-dependent.
+$$ Notice that the simulation begins with a decision tree model
+screening round. The distribution of individuals at the start of a
+screening episode is represented with the branches from the root node of
+the decision tree which are therefore time-dependent.
 
-![Screening model diagram taken from @lin2023simple. The white health states represent the natural history of disease. The two interventions, screening and treatment, are labelled in green. The screening intervention can only be implemented before the individual enters clinical health state (stage 3), and treatment can be received when patients are diagnosed from screening (stage 2) or clinically presented (stage 3).](model-diagram.png){#fig-screening-model width=100%}
+![Screening model diagram taken from @lin2023simple. The white health
+states represent the natural history of disease. The two interventions,
+screening and treatment, are labelled in green. The screening
+intervention can only be implemented before the individual enters
+clinical health state (stage 3), and treatment can be received when
+patients are diagnosed from screening (stage 2) or clinically presented
+(stage 3).](model-diagram.png){#fig-screening-model width="100%"}
 
-![Markov model component diagram for the screening example.](markov_model.png){#fig-markov-model width=100%}
+![Markov model component diagram for the screening
+example.](markov_model.png){#fig-markov-model width="100%"}
 
-![Decision tree model component diagram for the screening example.](decision_tree_model2.png){#fig-decision-tree-model width=100%}
+![Decision tree model component diagram for the screening
+example.](decision_tree_model2.png){#fig-decision-tree-model
+width="100%"}
 
 # R implementation
 
-The analysis was carried-out in R version 4.6.0. All code is available on GitHub at <https://github.com/n8thangreen/modularce>. Because of limited space and to focus the exposition, we do not include function input checks (called *asserts*) and other additional code, which it is good practice to include.
+The analysis was carried-out in R version 4.6.0. All code is available
+on GitHub at <https://github.com/n8thangreen/modularce>. Because of
+limited space and to focus the exposition, we do not include function
+input checks for quality assurance (called *asserts*) and other
+additional validation code, which it is good practice to include.
+\[#COMMENT: some are included in the code, so changed wording slightly\]
 
-The MM engine code is based on @Green2023 and is considered a black-box for our purposes. It is sufficient to define it in terms of the *contract*, that is, what values it requires as inputs and what output we can expect to obtain from it. We will principally use base R functions in the examples. This is to minimise the number of dependencies and make the code more robust and reproducible. We consider the CHEERS checklist [@husereau_consolidated_2022] for the key components of an analysis which we need to take account of in our proposed framework. We do not discount costs or health to present values for this simple model, but in practice this is a core consideration.
+The MM engine code is based on @Green2023 and is considered a black-box
+for our purposes. It is sufficient to define it in terms of the
+*contract*, that is, what values it requires as inputs and what output
+we can expect to obtain from it. We will principally use base R
+functions in the examples. This is to minimise the number of
+dependencies and make the code more robust and reproducible. We consider
+the CHEERS checklist [@husereau_consolidated_2022] for the key
+components of an analysis which we need to take account of in our
+proposed framework. We do not discount costs or health to present values
+for this simple model, but in practice this is a core consideration.
 
 ## S3 Framework
 
-The framework leverages the S3 methodology to seamlessly transition patient cohorts. At each screening interval (2, 5, 10, 15, and 20 years), the DT calculates the immediate redistribution of individuals based on test outcomes. Instead of manual data hand-offs, the `update_model()` generic function captures these revised proportions and feeds them directly into the MM. This allows the MM to project long-term downstream costs and health outcomes continuously without breaking the computational pipeline.
+The framework leverages the S3 methodology to seamlessly transition
+patient cohorts. At each screening interval (2, 5, 10, 15, and 20
+years), the DT calculates the immediate redistribution of individuals
+based on test outcomes. Instead of manual data hand-offs, the
+`update_model()` generic function captures these revised proportions and
+feeds them directly into the MM. This allows the MM to project long-term
+downstream costs and health outcomes continuously without breaking the
+computational pipeline.
 
-The class constructor functions for a decision tree and a Markov model are:
+\[#COMMENT: in above paragraph you state you don't do any discounting
+but then the next code chunk has discounting, counter intuitive as a
+reader\]
+
+The class constructor functions for a decision tree and a Markov model
+are:
 
 ```{r}
 DecisionTree <- function(data, disc_rate = 0.035) {
@@ -256,9 +531,13 @@ MarkovModel <- function(trans_matrix,
 }
 ```
 
-The `structure()` function defines an object with additional attributes, in this case class.
+The `structure()` function defines an object with additional attributes,
+in this case class.
 
-We will also create a `CombinedModel()` constructor which will simply consist of a list of other models which have previously been created with their own class constructors as above. This structure will allow us to pass around a single object.
+We will also create a `CombinedModel()` constructor which will simply
+consist of a list of other models which have previously been created
+with their own class constructors as above. This structure will allow us
+to pass around a single object.
 
 ```{r}
 CombinedModel <- function(...) {
@@ -267,7 +546,10 @@ CombinedModel <- function(...) {
 }
 ```
 
-We next define the generic functions, which are the polymorphic methods which will behave differently depending on what class of object is passed to them. This is 'boilerplate' R code which takes the same format every time.
+We next define the generic functions, which are the polymorphic methods
+which will behave differently depending on what class of object is
+passed to them. This is 'boilerplate' R code which takes the same format
+every time.
 
 ```{r}
 run_model <- function(model, ...) {
@@ -279,7 +561,8 @@ update_model <- function(model, result) {
 }
 ```
 
-The class-specific `run_model()` methods for each of the submodels are defined next:
+The class-specific `run_model()` methods for each of the submodels are
+defined next:
 
 ```{r}
 run_model.MarkovModel <- function(model, ...) {
@@ -319,9 +602,16 @@ run_model.DecisionTree <- function(model, ...) {
 }
 ```
 
-As already stated, we assume the internal simulation engines of the decision tree, `calculate_pathways()`, and Markov model, `markov_model()`, as black boxes for our purposes. The full code is all available in the GitHub repo.
+As already stated, we assume the internal simulation engines of the
+decision tree, `calculate_pathways()`, and Markov model,
+`markov_model()`, as black boxes for our purposes. The full code is all
+available in the GitHub repo.
 
-Next, we define the adaptor functions for each of the submodels. These are model-specific functions derived from the generic `update_model()`. In each case, results from the previous model in the pipeline are passed in and adapted appropriately to be input for the subsequent model, as defined by the class of the first argument.
+Next, we define the adaptor functions for each of the submodels. These
+are model-specific functions derived from the generic `update_model()`.
+In each case, results from the previous model in the pipeline are passed
+in and adapted appropriately to be input for the subsequent model, as
+defined by the class of the first argument.
 
 ```{r}
 update_model.MarkovModel <- function(model, prev_result) {
@@ -356,7 +646,11 @@ update_model.DecisionTree <- function(model, prev_result) {
 }
 ```
 
-The final key element is the orchestrator function. This higher-level function takes as first argument an object of class `CombinedModel` and steps through each of the component submodels by running and updating data for the appropriate submodel-specific methods of `run_model()` and `update_model()`.
+The final key element is the orchestrator function. This higher-level
+function takes as first argument an object of class `CombinedModel` and
+steps through each of the component submodels by running and updating
+data for the appropriate submodel-specific methods of `run_model()` and
+`update_model()`.
 
 ```{r}
 run_model.CombinedModel <- function(model, ...) {
@@ -385,7 +679,12 @@ run_model.CombinedModel <- function(model, ...) {
 
 ## Input data
 
-Now that the function preparatory code is complete, the input data as defined in the Data section above are translated into R code. We define a simulation duration of 20 years and define the screening programme in terms of the time between screening and the number of screening episodes. The analysis will investigate all combinations of intervals and episode values.
+Now that the function preparatory code is complete, the input data as
+defined in the Data section above are translated into R code. We define
+a simulation duration of 20 years and define the screening programme in
+terms of the time between screening and the number of screening
+episodes. The analysis will investigate all combinations of intervals
+and episode values.
 
 ```{r}
 # Define the grid of parameters
@@ -398,7 +697,9 @@ num_screens <- 1:10
 discount_rate <- 0.035
 ```
 
-The decision tree data are defined as a `tribble()` from the *tibble* package which allows us to write it in the same format that it will be printed for clearer code (@fig-code-input-dt).
+The decision tree data are defined as a `tribble()` from the *tibble*
+package which allows us to write it in the same format that it will be
+printed for clearer code (@fig-code-input-dt).
 
 ```{r}
 #| label: fig-code-input-dt
@@ -421,7 +722,8 @@ decision_tree <- tibble::tribble(
 )
 ```
 
-The Markov model transition probability matrix is defined in @fig-code-input-mm.
+The Markov model transition probability matrix is defined in
+@fig-code-input-mm.
 
 ```{r}
 #| label: fig-code-input-mm
@@ -479,7 +781,8 @@ init_pop <- c(
 )
 ```
 
-Finally, we need to define the mapping from the decision tree terminal nodes to the Markov model states:
+Finally, we need to define the mapping from the decision tree terminal
+nodes to the Markov model states:
 
 ```{r}
 mapping <- c(
@@ -606,9 +909,11 @@ get_effects.default <- function(x, ...) {
   if (is.list(x)) sum(unlist(lapply(x, \(elem) elem$expected_eff)), na.rm = TRUE) else as.numeric(x)
 }
 ```
+
 ## Analysis
 
-Having established the simulation code and input data, it is straightforward to run the analysis inside of a loop over the scenarios.
+Having established the simulation code and input data, it is
+straightforward to run the analysis inside of a loop over the scenarios.
 
 ```{r}
 # Loop through scenarios and execute the unified framework
@@ -656,23 +961,82 @@ for (t_val in t_between_screens) {
 }
 ```
 
+Note that do.call(CombinedModel, args = submodels) is equivalent to
+calling the function CombinedModel() applied to listed submodels (i.e.
+CombinedModel(dt, mm_scenario, dt, mm_scenario...)), giving one decision
+tree followed by one markov model for each of the n_scr screening
+scenarios. It then utlises the `run_model.CombinedModel()` , defined
+earlier, to run the model on the CombindeModel object. This, in turn, is
+using the run_model() and update_model() functions based on if it is a
+DT or MM object being passed through at that 'point in time'.
+
+\[#COMMENT: check the sentences i added above are correct\]
+
 ## Probabilistic sensitivity analysis
 
-Probabilistic Sensitivity Analysis (PSA) is fundamentally streamlined under our unified framework. In a traditional basic approach, analysts must manually manage the extraction of DT outputs to feed into the MM for every single PSA iteration, which is both error-prone and computationally inefficient. By encapsulating the model within the `CombinedModel` class, a PSA simply requires applying a mapping function (such as `lapply()` in base R) over the probabilistic input distributions. The `run_model.CombinedModel()` function acts as the orchestrator, automatically handling the internal control flow and data passing for each iteration. This ensures that structural integrity is maintained across thousands of simulation runs without manual intervention.
+Probabilistic Sensitivity Analysis (PSA) is fundamentally streamlined
+under our unified framework. In a traditional basic approach, analysts
+must manually manage the extraction of DT outputs to feed into the MM
+for every single PSA iteration, which is both error-prone and
+computationally inefficient. By encapsulating the model within the
+`CombinedModel` class, a PSA simply requires applying a mapping function
+(such as `lapply()` in base R) over the probabilistic input
+distributions. The `run_model.CombinedModel()` function acts as the
+orchestrator, automatically handling the internal control flow and data
+passing for each iteration. This ensures that structural integrity is
+maintained across thousands of simulation runs without manual
+intervention.
 
 ## Design choices
 
-Even within the proposed architecture there are several subjective design decisions to make, which can depend on the specifics of the problem at hand. One design choice is where in the code to perform the linking of models. One option is to chain the models together when we create them or another option is to do this at the same time as running the model. There are pros and cons to each approach.
+Even within the proposed architecture there are several subjective
+design decisions to make, which can depend on the specifics of the
+problem at hand. One design choice is where in the code to perform the
+linking of models. One option is to chain the models together when we
+create them or another option is to do this at the same time as running
+the model. There are pros and cons to each approach.
 
-Another issue is to do with the generalisability of linking models. Should the code use the information about which type of model is being linked from (source) and linked to (target)? In an OOP framework this would require something called *double dispatch* which is not the original intention of S3 in R but can be manufactured using it and is implemented in packages such as *vctrs* [@vctrs2026]. Taking into account these considerations, in our case study example we have placed the linking logic within the model running function. We have also assumed that given a target model, we then know what the source model is. This is reasonable in our context and keeps the code clean for demonstration purposes. An alternative version of our code using the double dispatch approach employed by *vctrs* is also available in the supplementary material. The newer and less adopted S7 OOP system in R does natively support multiple dispatch which could elegantly solve the problem with a little more advanced code. We provide a version of the code in the supplementary material.
+Another issue is to do with the generalisability of linking models. The
+current approach outlined above focuses on "single dispatch", i.e. the
+function focuses on "what type of object is the input". One question can
+then be should the code also use the information about which type of
+object (aka model in our case) is being linked from (source) and which
+type of object (model) is the target? In other words, taking into
+consideration source model type and output model type. In an OOP
+framework this would require something called *double dispatch* which is
+not the original intention of S3 in R but can be manufactured using it
+and is implemented in packages such as *vctrs* [@vctrs2026].
 
-Our decision to utilize an S3-based orchestrator to link sequential model components aligns with established best practices in modern R software engineering. For instance, the *tidymodels* ecosystem (specifically the *workflows* and *stacks* packages) relies heavily on S3 generics to handle the sequential passing of data between preprocessing steps, individual models, and ensemble meta-models.
+Taking into account these considerations, in our case study example we
+have placed the linking logic within the model running function. We have
+also assumed that given a target model, we then know what the source
+model is. This is reasonable in our context and keeps the code clean for
+demonstration purposes.
 
-A Unified Markup Language (UML) diagram of the code structure is given in Appendix @fig-UML. This shows how all of the functions are related to each other.
+An alternative version of our code using the double dispatch approach
+employed by *vctrs* is also available in the supplementary material. The
+newer and less adopted S7 OOP system in R does natively support multiple
+dispatch which could elegantly solve the problem with a little more
+advanced code. We provide a version of the code in the supplementary
+material.
 
-# Results
+Our decision to utilize an S3-based orchestrator to link sequential
+model components aligns with established best practices in modern R
+software engineering. For instance, the *tidymodels* ecosystem
+(specifically the *workflows* and *stacks* packages) relies heavily on
+S3 generics to handle the sequential passing of data between
+preprocessing steps, individual models, and ensemble meta-models.
 
-@fig-occupy-combined illustrates the state occupancy over a 20-year time horizon for the 2-year and 10-year screening intervals. These plots demonstrate the expected dynamics: more frequent screening redistributes the population more rapidly into the "Treated" and "Disease" states. 
+A Unified Markup Language (UML) diagram of the code structure is given
+in Appendix @fig-UML. This shows how all of the functions are related to
+each other.
+
+## Results
+
+@fig-occupy-combined illustrates the state occupancy over a 20-year time
+horizon for the 2-year and 10-year screening intervals. These plots
+demonstrate the expected dynamics: more frequent screening redistributes
+the population more rapidly into the "Treated" and "Disease" states.
 
 ```{r}
 #| label: fig-occupy-combined
@@ -743,10 +1107,25 @@ plot_occupancy(trace_2y,  "State Occupancy: 2-Yearly Screening (20-Year Horizon)
 plot_occupancy(trace_10y, "State Occupancy: 10-Yearly Screening (20-Year Horizon)")
 ```
 
+@fig-ce-plot synthesizes the cost-effectiveness across the full grid of
+evaluated screening strategies, plotting total accumulated costs against
+total health outcomes. As expected from a structurally sound health
+economic evaluation, the results display clear efficiency trade-offs.
+Strategies utilizing highly frequent screening intervals (e.g., the
+2-year interval curve) yield the highest overall health benefits by
+capturing clinical transitions earlier, but they do so at a
+significantly steeper marginal cost trajectory due to compounding
+screening and treatment expenses. Conversely, less frequent screening
+(e.g., the 15- and 20-year intervals) produces lower-cost outcomes with
+correspondingly reduced health gains.
 
-@fig-ce-plot synthesizes the cost-effectiveness across the full grid of evaluated screening strategies, plotting total accumulated costs against total health outcomes. As expected from a structurally sound health economic evaluation, the results display clear efficiency trade-offs. Strategies utilizing highly frequent screening intervals (e.g., the 2-year interval curve) yield the highest overall health benefits by capturing clinical transitions earlier, but they do so at a significantly steeper marginal cost trajectory due to compounding screening and treatment expenses. Conversely, less frequent screening (e.g., the 15- and 20-year intervals) produces lower-cost outcomes with correspondingly reduced health gains. 
-
-Importantly, the smooth and mathematically predictable progression of these curves—scaling logically with the number of screening episodes—demonstrates that the declarative S3 framework functions exactly as intended. It confirms that the object-oriented architecture correctly accumulates costs and propagates complex cohort transitions between the DT and MM without the silent data-loss or misallocation errors common in manual imperative scripts.
+Importantly, the smooth and mathematically predictable progression of
+these curves—scaling logically with the number of screening
+episodes—demonstrates that the declarative S3 framework functions
+exactly as intended. It confirms that the object-oriented architecture
+correctly accumulates costs and propagates complex cohort transitions
+between the DT and MM without the silent data-loss or misallocation
+errors common in manual imperative scripts.
 
 ```{r}
 #| label: fig-ce-plot
@@ -783,9 +1162,28 @@ ggplot(ce_data, aes(x = qalys, y = cost, color = t_interval, group = t_interval)
   )
 ```
 
-# Changes in Model and Data
+## Structural Adaptations via S3 Class Specialisation
 
-As for the previous example, the PSM engine it assumed a blackbox for our purposes so is not shown here but all code is avaialable in the GitHub repository.
+When a jurisdiction mandates a structural change—such as an alternative
+long-term extrapolation method or an additional post-progression therapy
+branch, we can use class derivation (e.g.,
+`c("MarkovModel_PBAC", "MarkovModel", "Model")`).
+
+```{r} # PBAC structural variant: models continuous PBS dynamic market-share erosion MarkovModel_PBAC <- function(trans_matrix, costs, utils,                               erosion_rate = 0.05, mapping = NULL, ...) {   mod <- MarkovModel(trans_matrix = trans_matrix, costs = costs,                       utils = utils, mapping = mapping, ...)   mod$erosion_rate <- erosion_rate   class(mod) <- c("MarkovModel_PBAC", class(mod))   mod }  # Specific S3 method dispatch: PBAC applies market-share price cuts over cycles run_model.MarkovModel_PBAC <- function(model) {   # Apply country-specific dynamic erosion adjustment before running   model$cost_vector <- model$cost_vector * (1 - model$erosion_rate)      # Delegate core execution to base Markov runner   NextMethod("run_model") }
+```
+
+The `NextMethod()` function delegates the heavy matrix operations
+directly to the verified global engine (`run_model.MarkovModel`). The
+central orchestrator `run_model.CombinedModel` runs without touching a
+line of code.
+
+## Partitioned Survival model
+
+We now also demonstrate using an object oriented approach when using a
+partitioned survival model (PSM). As for the previous example, the PSM
+engine it assumed a blackbox for our purposes so is not shown here but
+all code is available in the GitHub repository
+\[<https://github.com/n8thangreen/modularce>\].
 
 ```{r}
 #| label: fig-natural-history
@@ -938,9 +1336,8 @@ run_partsa_engine <- function(pfs_fit, os_fit, weights, horizon, start_cycle = 0
 map_ps <- mapping
 ```
 
-### Submodel substitution
-
-From a Markov model to a partitioned survival model (PSM).
+First we define the constructor function in relation to PSMs, defined in
+the code as "PartSAmodel" objects.
 
 ```{r}
 # constructor
@@ -966,7 +1363,8 @@ PartSAModel <- function(surv_pfs, surv_os, cost_vector,
 }
 ```
 
-S3 methods
+Then we add functionality to update_model and run_model functions in
+handling PartSAmodel objects.
 
 ```{r}
 #' S3 update method: Ingests Decision Tree outputs
@@ -1011,7 +1409,10 @@ run_model.PartSAModel <- function(model) {
 }
 ```
 
-Analysis
+Then we rerun the analysis function. Note that by using this framework,
+CombinedModel portion of the analysis code doesn't need any redefining
+or adjusting and can be run as before with no coding adaptations needed
+on that section of the analysis code.
 
 ```{r PartSA-grid}
 #| echo: true
@@ -1121,40 +1522,49 @@ ggplot(ce_data_ps, aes(x = qalys, y = cost, color = t_interval, group = t_interv
   )
 ```
 
-### Structural Adaptations via S3 Class Specialisation
-
-When a jurisdiction mandates a structural change—such as an alternative long-term extrapolation method or an additional post-progression therapy branch, we can use class derivation (e.g., `c("MarkovModel_PBAC", "MarkovModel", "Model")`).
-
-```{r}
-# PBAC structural variant: models continuous PBS dynamic market-share erosion
-MarkovModel_PBAC <- function(trans_matrix, costs, utils, 
-                             erosion_rate = 0.05, mapping = NULL, ...) {
-  mod <- MarkovModel(trans_matrix = trans_matrix, costs = costs, 
-                     utils = utils, mapping = mapping, ...)
-  mod$erosion_rate <- erosion_rate
-  class(mod) <- c("MarkovModel_PBAC", class(mod))
-  mod
-}
-
-# Specific S3 method dispatch: PBAC applies market-share price cuts over cycles
-run_model.MarkovModel_PBAC <- function(model) {
-  # Apply country-specific dynamic erosion adjustment before running
-  model$cost_vector <- model$cost_vector * (1 - model$erosion_rate)
-  
-  # Delegate core execution to base Markov runner
-  NextMethod("run_model")
-}
-```
-
-The `NextMethod()` function delegates the heavy matrix operations directly to the verified global engine (`run_model.MarkovModel`).
-The central orchestrator `run_model.CombinedModel` runs without touching a line of code.
-
-
 # Discussion
-Traditional health economic models often bundle clinical pathways, cost inputs, and final calculations into a single, rigid script or spreadsheet, making them fragile and difficult to update. In contrast, our framework applies established software engineering standards—specifically the SOLID principles—to create a much more robust and adaptable system. By ensuring that each component has only one job (Single Responsibility), such as completely separating the clinical simulation from the economic payoffs, we drastically reduce the risk of errors when updating parameters. Furthermore, the architecture is designed so that new components, like a custom jurisdiction profile or a new sub-model, can be plugged into the pipeline without altering or breaking the core mathematical engine (Open-Closed Principle). Because all sub-models communicate through a standardised data contract, researchers can swap a Markov model for a different structure with confidence that the downstream calculations will still function perfectly (Liskov Substitution). Ultimately, this approach moves health economic modelling away from bespoke, tangled code and towards a transparent, modular infrastructure where each piece can be independently tested and trusted.
+
+Traditional health economic models often bundle clinical pathways, cost
+inputs, and final calculations into a single, rigid script or
+spreadsheet, making them fragile and difficult to update. In contrast,
+our framework applies established software engineering standards to
+create a much more robust and adaptable system. By ensuring that each
+component has only one job (Single Responsibility), such as completely
+separating the clinical simulation from the economic payoffs, we
+drastically reduce the risk of errors when updating parameters.
+Furthermore, the architecture is designed so that new components, like a
+new sub-model, can be plugged into the pipeline without altering or
+breaking the core mathematical engine (Open-Closed Principle). Because
+all sub-models communicate through a standardised data contract,
+researchers can swap a Markov model for a different structure with
+confidence that the downstream calculations will still function
+perfectly (Liskov Substitution). Ultimately, this approach moves health
+economic modelling away from bespoke, tangled code and towards a
+transparent, modular infrastructure where each piece can be
+independently tested and trusted.
+
+Generative AI and vibe coding are producing and adapting health economic
+evaluative models at a rapid phase. Code produced by large-language
+models are based on training data using historical modelling, which may
+not always be the most appropriate. As we move towards hybrid
+intelligence model building processes it is important that we explore
+different modeling paradigms in the pursuit of robust science.
 
 # Conclusion
-We have demonstrated that adopting a declarative, object-oriented programming approach using S3 in R provides a robust and scalable solution for multi-component cost-effectiveness models. By abstracting the control flow and automating data transitions between DTs and MMs, this framework directly addresses the testability, reproducibility, and efficiency issues prevalent in legacy imperative scripts. Although moving away from traditional step-by-step coding requires a paradigm shift for many health economists, the resulting unified architecture aligns health technology assessment with modern software engineering best practices. Ultimately, this improves the transparency, flexibility, and reliability of the models used to inform critical healthcare decisions.
+
+We have demonstrated that adopting a declarative, object-oriented
+programming approach using S3 in R provides a robust and scalable
+solution for multi-component cost-effectiveness models. By abstracting
+the control flow and automating data transitions between combined-model
+components, including decision trees, markov models and partitioned
+survival models, this framework directly addresses the testability,
+reproducibility, and efficiency issues prevalent in legacy imperative
+scripts. Although moving away from traditional step-by-step coding
+requires a paradigm shift for many health economists, the resulting
+unified architecture aligns health technology assessment with modern
+software engineering best practices. Ultimately, this improves the
+transparency, flexibility, and reliability of the models used to inform
+critical healthcare decisions.
 
 ## Acknowledgements {.unnumbered}
 
@@ -1169,4 +1579,16 @@ xxx
 
 ## UML {#sec-uml}
 
-![UML diagram for the decision tree - Markov model code. Inheritance / Generalization is a solid line with a large hollow (unfilled) triangle arrowhead pointing to the parent class in our case the decision tree and Markov model output; Implementation is a dashed line with a large hollow (unfilled) triangle arrowhead pointing to the interface, in our case the specific type of models; Dependency is a dashed line with an open arrowhead, the function on the right hand side of the diagram. The line with the unfilled diamond represents aggregation and "2..*" indicates that there are 2 or more models in `CombinedModel`.](UML.png){#fig-UML width=100%}
+![UML diagram for the decision tree - Markov model code. Inheritance /
+Generalization is a solid line with a large hollow (unfilled) triangle
+arrowhead pointing to the parent class in our case the decision tree and
+Markov model output; Implementation is a dashed line with a large hollow
+(unfilled) triangle arrowhead pointing to the interface, in our case the
+specific type of models; Dependency is a dashed line with an open
+arrowhead, the function on the right hand side of the diagram. The line
+with the unfilled diamond represents aggregation and "2..\*" indicates
+that there are 2 or more models in `CombinedModel`.](UML.png){#fig-UML
+width="100%"}
+
+\[#COMMENT: need to add vctrs & S7 description of remove related
+sentence from main manuscript\]

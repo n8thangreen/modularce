@@ -9,7 +9,9 @@
 
 library(tibble)
 library(dplyr)
-library(modularce)
+
+## source model functions
+source("R/source_all.R")
 
 # ------------------------------------------------------------------------------
 # 1. Define Model Data (Decision Tree & Markov Parameters)
@@ -99,7 +101,7 @@ p_init <- array(
 dt <- DecisionTree(decision_tree)
 
 # Precalculate decision tree pathway tree structure upfront
-dt_pathways <- modularce:::calculate_pathways(dt)
+dt_pathways <- calculate_pathways(dt)
 cat("Precalculated decision tree pathways:\n")
 print(dt_pathways)
 

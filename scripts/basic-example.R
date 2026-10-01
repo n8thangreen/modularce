@@ -6,6 +6,9 @@
 library(tibble)
 library(dplyr)
 
+## source model functions
+source("R/source_all.R")
+
 ##########
 # EXAMPLE 
 ##########
@@ -57,7 +60,6 @@ mapping <- c(FP = "healthy", TP = "healthy", TN = "healthy", FN = "sick")
 ## build models
 
 dt <- DecisionTree(decision_tree)
-dt_N <- DecisionTree(decision_tree, N = 100)
 
 mm0 <- MarkovModel(trans_matrix = trans_prob_mat,
                    cost_matrix = cost_mat,

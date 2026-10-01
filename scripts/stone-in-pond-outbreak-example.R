@@ -12,7 +12,10 @@
 
 library(tibble)
 library(dplyr)
-library(modularce)
+
+## source model functions
+source("R/source_all.R")
+
 
 # ------------------------------------------------------------------------------
 # 1. Define Model Data & Parameters

@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.5.57">
+<meta name="generator" content="quarto-1.10.18">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -10,10 +10,16 @@
 
 <title>A Unified Framework for Multiple Component Cost-Effectiveness Models in R: A Tutorial</title>
 <style>
-code{white-space: pre-wrap;}
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
 span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
@@ -22,8 +28,9 @@ ul.task-list li input[type="checkbox"] {
   vertical-align: middle;
 }
 /* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -34,7 +41,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -59,7 +66,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 div.csl-bib-body { }
 div.csl-entry {
   clear: both;
-  margin-bottom: 0em;
 }
 .hanging-indent div.csl-entry {
   margin-left:2em;
@@ -79,22 +85,23 @@ div.csl-indent {
 
 
 <script src="manuscript_files/libs/clipboard/clipboard.min.js"></script>
-<script src="manuscript_files/libs/quarto-html/quarto.js"></script>
+<script src="manuscript_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="manuscript_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="manuscript_files/libs/quarto-html/popper.min.js"></script>
 <script src="manuscript_files/libs/quarto-html/tippy.umd.min.js"></script>
 <script src="manuscript_files/libs/quarto-html/anchor.min.js"></script>
 <link href="manuscript_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="manuscript_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="manuscript_files/libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="manuscript_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="manuscript_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="manuscript_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<link href="manuscript_files/libs/bootstrap/bootstrap-215b371544c282197b31c8aa00ce3677.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <link href="manuscript_files/libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet">
 
 <script src="manuscript_files/libs/pagedtable-1.1/js/pagedtable.js"></script>
 
 
   <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
 
 <script type="text/javascript">
 const typesetMath = (el) => {
@@ -107,7 +114,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -125,7 +132,7 @@ window.Quarto = {
 
 </head>
 
-<body>
+<body class="quarto-light">
 
 <div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
 <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
@@ -153,22 +160,19 @@ window.Quarto = {
   <li><a href="#analysis" id="toc-analysis" class="nav-link" data-scroll-target="#analysis"><span class="header-section-number">6.3</span> Analysis</a></li>
   <li><a href="#probabilistic-sensitivity-analysis" id="toc-probabilistic-sensitivity-analysis" class="nav-link" data-scroll-target="#probabilistic-sensitivity-analysis"><span class="header-section-number">6.4</span> Probabilistic sensitivity analysis</a></li>
   <li><a href="#design-choices" id="toc-design-choices" class="nav-link" data-scroll-target="#design-choices"><span class="header-section-number">6.5</span> Design choices</a></li>
+  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results"><span class="header-section-number">6.6</span> Results</a></li>
+  <li><a href="#structural-adaptations-via-s3-class-specialisation" id="toc-structural-adaptations-via-s3-class-specialisation" class="nav-link" data-scroll-target="#structural-adaptations-via-s3-class-specialisation"><span class="header-section-number">6.7</span> Structural Adaptations via S3 Class Specialisation</a></li>
+  <li><a href="#partitioned-survival-model" id="toc-partitioned-survival-model" class="nav-link" data-scroll-target="#partitioned-survival-model"><span class="header-section-number">6.8</span> Partitioned Survival model</a></li>
   </ul></li>
-  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results"><span class="header-section-number">7</span> Results</a></li>
-  <li><a href="#changes-in-model-and-data" id="toc-changes-in-model-and-data" class="nav-link" data-scroll-target="#changes-in-model-and-data"><span class="header-section-number">8</span> Changes in Model and Data</a>
-  <ul class="collapse">
-  <li><a href="#submodel-substitution" id="toc-submodel-substitution" class="nav-link" data-scroll-target="#submodel-substitution"><span class="header-section-number">8.0.1</span> Submodel substitution</a></li>
-  <li><a href="#structural-adaptations-via-s3-class-specialisation" id="toc-structural-adaptations-via-s3-class-specialisation" class="nav-link" data-scroll-target="#structural-adaptations-via-s3-class-specialisation"><span class="header-section-number">8.0.2</span> Structural Adaptations via S3 Class Specialisation</a></li>
-  </ul></li>
-  <li><a href="#discussion" id="toc-discussion" class="nav-link" data-scroll-target="#discussion"><span class="header-section-number">9</span> Discussion</a></li>
-  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">10</span> Conclusion</a>
+  <li><a href="#discussion" id="toc-discussion" class="nav-link" data-scroll-target="#discussion"><span class="header-section-number">7</span> Discussion</a></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">8</span> Conclusion</a>
   <ul class="collapse">
   <li><a href="#acknowledgements" id="toc-acknowledgements" class="nav-link" data-scroll-target="#acknowledgements">Acknowledgements</a></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
   </ul></li>
   <li><a href="#appendix" id="toc-appendix" class="nav-link" data-scroll-target="#appendix">Appendix</a>
   <ul class="collapse">
-  <li><a href="#sec-uml" id="toc-sec-uml" class="nav-link" data-scroll-target="#sec-uml"><span class="header-section-number">10.1</span> UML</a></li>
+  <li><a href="#sec-uml" id="toc-sec-uml" class="nav-link" data-scroll-target="#sec-uml"><span class="header-section-number">8.1</span> UML</a></li>
   </ul></li>
   </ul>
 <div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="manuscript.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
@@ -205,10 +209,7 @@ window.Quarto = {
 <div>
   <div class="abstract">
     <div class="block-title">Abstract</div>
-    <p><strong>Background:</strong> A cost-effectiveness analysis (CEA) compares an intervention to one or more alternatives by estimating how much it costs to gain an additional unit of health outcome. In recent years there has been a shift in implementing these models in programmatic languages better suited to more sophisticated models, model checking and advanced visualisations.</p>
-    <p><strong>Problem:</strong> It is common for a CEA model to consist of multiple separate submodel components, such as those which combine decision trees and Markov models. However, there are important limitations to the traditional approach of implementing component models either disjointly and manually passing input and output data between them, or as a single ad-hoc script making clarity and testing a challenge.</p>
-    <p><strong>Solution:</strong> We propose a unified framework that integrates these submodels using declarative programming and S3 object-oriented programming in the R programming language. This approach addresses several issues associated with the separated or script-based approaches, such as extensibility, flexibility, and efficiency. We provide a detailed explanation of the unified framework and demonstrate its practical application using a motivating example of a CEA model involving multiple screening sessions over a lifetime where, at the point of every screening session, individuals can be redistributed across health states based on their screening results.</p>
-    <p><strong>Conclusions:</strong> By better integrating component models, the proposed framework enhances the robustness, transparency, and efficiency of CEA, ultimately leading to improved informed decision-making in healthcare and other fields.</p>
+    <p><strong>Background:</strong> A cost-effectiveness analysis (CEA) compares an intervention to one or more alternatives by estimating how much it costs to gain an additional unit of health outcome. In recent years there has been a shift in implementing these models in programmatic languages better suited to more sophisticated models, model checking and advanced visualisations. <strong>Problem:</strong> It is common for a CEA model to consist of multiple separate submodel components, such as those which combine decision trees and Markov models. However, there are important limitations to the traditional approach of implementing component models either disjointly and manually passing input and output data between them, or as a single ad-hoc script making clarity and testing a challenge. <strong>Solution:</strong> We propose a unified framework that integrates these submodels using declarative programming and S3 object-oriented programming in the R programming language. This approach addresses several issues associated with the separated or script-based approaches, such as extensibility, flexibility, and efficiency. We provide a detailed explanation of the unified framework and demonstrate its practical application using a motivating example of a CEA model involving multiple screening sessions over a lifetime where, at the point of every screening session, individuals can be redistributed across health states based on their screening results. <strong>Conclusions:</strong> By better integrating component models, the proposed framework enhances the robustness, transparency, and efficiency of CEA, ultimately leading to improved informed decision-making in healthcare and other fields.</p>
   </div>
 </div>
 
@@ -219,11 +220,12 @@ window.Quarto = {
 <section id="introduction" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> Introduction</h1>
 <p>Cost-effectiveness analysis (CEA) in healthcare is the comparative assessment of alternative courses of action, evaluating both their relative costs and downstream consequences <span class="citation" data-cites="drummond2015methods">(<a href="#ref-drummond2015methods" role="doc-biblioref">Drummond et al. 2015</a>)</span>. To conduct these evaluations, health economists frequently rely on mathematical modelling. These models are becoming more powerful and complex. One feature of this is that models may consist of multiple linked components designed to capture different phases of a disease or treatment pathway.</p>
-<p>In particular, a widely used structural approach in CEA combines a two-part model. This is particularly common when evaluating pathways such as population screening programs or acute hospital care <span class="citation" data-cites="Sandercock2004">(<a href="#ref-Sandercock2004" role="doc-biblioref">Sandercock et al. 2004</a>)</span>. This consists of an initial stage where a decision-making process and intervention are undertaken. An individual would be evaluated and treated according to certain deterministic and random considerations. The subsequent stage simulates the consequences of the first stage on the population depending on the previous results <span class="citation" data-cites="briggs2006decision">(<a href="#ref-briggs2006decision" role="doc-biblioref">Briggs, Claxton, and Sculpher 2006</a>)</span>. For example, individuals may be invited to screening and given treatment according to the results of an imperfect test. Then their long term outcomes are estimated, with the population split into true positive, true negative, false positive and false negatives who may or may not have agreed to take the treatment which may not have been effective. Outcomes for the second stage may include progression to disease, side effects from treatment, and mortality.</p>
-<p>There are general modelling and software engineering issues with the legacy multiple component modelling approach. These are either disjoint models or ad-hoc single scripts. This produces models which are error prone, hard to test, reproduce or extend. In HTA projects it is often required to modify or repurpose existing models, and the existing approach can be inefficient and time consuming. In addition, it is usual in a cost-effectiveness analysis to explore several (possibly many) alternative interventions. Each of these may have different sets of unit costs, health values, probabilities and possibly (but less common) model structure. This would require the management of these alongside the plugging in of model output as model inputs between components. The analysis pipeline or workflow thus has potentially many ‘moving parts’, any one of which can introduce a bug or error which would affect the calculation and the optimal decision.</p>
-<p>There appears a consensus that modern code for health economics modelling is not fit for purpose. <span class="citation" data-cites="Kent2019">Kent et al. (<a href="#ref-Kent2019" role="doc-biblioref">2019</a>)</span> and <span class="citation" data-cites="Wu2019">Wu et al. (<a href="#ref-Wu2019" role="doc-biblioref">2019</a>)</span> argue that there is often a lack of clear code structure in health economics models which makes it difficult for third parties to validate them. We will propose an approach which solves this by making the pipeline visible and not buried in nested loops. This sentiment is repeated in <span class="citation" data-cites="Eddy2012MDM">Eddy et al. (<a href="#ref-Eddy2012MDM" role="doc-biblioref">2012</a>)</span>, who state that a model should be “reproducible by another team of investigators.” <span class="citation" data-cites="AlaridEscudero2019">Alarid-Escudero et al. (<a href="#ref-AlaridEscudero2019" role="doc-biblioref">2019</a>)</span> explicitly discuss the need for modularity, highlighting that complex models should be broken down into reusable components to reduce the risk of “technical debt” and error rates. <span class="citation" data-cites="Jalal2017">Jalal et al. (<a href="#ref-Jalal2017" role="doc-biblioref">2017</a>)</span> discusses how although R is powerful it lacks a standard structure and so modelling code is often poorer for it. They advocate for formal structures to ensure models can be audited. <span class="citation" data-cites="Krijkamp2018">Krijkamp et al. (<a href="#ref-Krijkamp2018" role="doc-biblioref">2018</a>)</span> provide a checklist that emphasizes modularity and input-output consistency. We will propose a way to formalize the “hand-off” that is usually handled with messy global variables.</p>
+<p>In particular, a widely used structural approach in CEA combines a two-part model. This is particularly common when evaluating pathways such as population screening programs or acute hospital care <span class="citation" data-cites="Sandercock2004">(<a href="#ref-Sandercock2004" role="doc-biblioref">Sandercock et al. 2004</a>)</span>. This consists of an initial stage where a decision-making process and intervention are undertaken. An individual would be evaluated and treated according to certain deterministic considerations. The subsequent stage simulates the consequences of the first stage on the population depending on the previous results <span class="citation" data-cites="briggs2006decision">(<a href="#ref-briggs2006decision" role="doc-biblioref">Briggs et al. 2006</a>)</span>. For example, individuals may be invited to screening and given treatment according to the results of an imperfect test. Then their long term outcomes are estimated, with the population split into true positive, true negative, false positive and false negatives who may or may not have agreed to take the treatment which may not have been effective. Outcomes for the second stage may include progression to disease, side effects from treatment, and mortality.</p>
+<p>There are general modelling and software engineering issues with the legacy multiple component modelling approach. These are either disjoint models or ad-hoc single scripts. This produces models which can be error prone, hard to test, reproduce or extend. In HTA projects it is often required to modify or re-purpose existing models, and the existing approach can be inefficient and time consuming. In addition, it is usual in a cost-effectiveness analysis to explore several (possibly many) alternative interventions. Each of these may have different sets of unit costs, health values, probabilities and possibly (but less common) model structure. This would require the management of these alongside the plugging in of model output as model inputs between components. The analysis pipeline or workflow thus has potentially many ‘moving parts’, any one of which can introduce a bug and/or make it harder to efficiently propagate uncertainty throughout the model(s).</p>
+<p>There appears a consensus that modern code for health economics modelling is not fit for purpose. <span class="citation" data-cites="Kent2019">Kent et al. (<a href="#ref-Kent2019" role="doc-biblioref">2019</a>)</span> and <span class="citation" data-cites="Wu2019">Wu et al. (<a href="#ref-Wu2019" role="doc-biblioref">2019</a>)</span> argue that there is often a lack of clear code structure in health economics models which makes it difficult for third parties to validate them. Additionally, to implement appropriate testing and validation assertions within current standard coding frameworks requires multiple manual instrumenting.</p>
+<p>We will propose an approach which solves this by making the pipeline visible and not buried in nested loops. This sentiment is repeated in <span class="citation" data-cites="Eddy2012MDM">Eddy et al. (<a href="#ref-Eddy2012MDM" role="doc-biblioref">2012</a>)</span>, who state that a model should be “reproducible by another team of investigators.” <span class="citation" data-cites="AlaridEscudero2019">Alarid-Escudero et al. (<a href="#ref-AlaridEscudero2019" role="doc-biblioref">2019</a>)</span> explicitly discuss the need for modularity, highlighting that complex models should be broken down into reusable components to reduce the risk of “technical debt” and error rates. <span class="citation" data-cites="Jalal2017">Jalal et al. (<a href="#ref-Jalal2017" role="doc-biblioref">2017</a>)</span> discusses how although R is powerful it lacks a standard structure and so modelling code is often poorer for it. They advocate for formal structures to ensure models can be audited. <span class="citation" data-cites="Krijkamp2018">Krijkamp et al. (<a href="#ref-Krijkamp2018" role="doc-biblioref">2018</a>)</span> provide a checklist that emphasizes modularity and input-output consistency. We will propose a way to formalize the “hand-off” that is usually handled with messy global variables.</p>
 <p><span class="citation" data-cites="Krijkamp2018">Krijkamp et al. (<a href="#ref-Krijkamp2018" role="doc-biblioref">2018</a>)</span> adopt a ‘bridge’ or data translator function to map between models. This formalises how to distribute individuals across starting state of the long-term model. This is an improvement from the hard-coded implementation often seen in other models. However, this is still part of a sequential script rather than a formalised framework. We propose going beyond simply ‘good coding style’ to ‘software engineering’ practice. They manually chain components but this can be managed or ‘orchestrated’ automatically as part of the framework.</p>
-<p>Although CEA models have been traditionally built in Microsoft Excel, their increasing sophistication has driven a shift toward computational programming languages like R <span class="citation" data-cites="rlanguage">(<a href="#ref-rlanguage" role="doc-biblioref">R Core Team 2025</a>)</span>. Despite this transition, the field has largely failed to adopt modern programming paradigms. In particular, analysts often treat interconnected submodels as isolated scripts, missing the opportunity to leverage the architectural benefits of a programmatic framework. In software engineering, integrating separate components into a unified system is a well-established discipline that relies on a modular approach—breaking a program into distinct, functional blocks which interact with one another in standardised ways. Thus, a practical demonstration of how to straightforwardly implement multi-component CEA models following software engineering best practices could address this gap.</p>
+<p>Although CEA models have been traditionally built in Microsoft Excel, their increasing sophistication has driven a shift toward computational programming languages like R <span class="citation" data-cites="rlanguage">(<a href="#ref-rlanguage" role="doc-biblioref">R Core Team 2025</a>)</span>, potentially accelerated with the use of generative artificial intelligence and ‘vibe coding’ in creating evaluative models. Despite this transition, the field has largely failed to adopt modern programming paradigms. In particular, analysts often treat interconnected submodels as isolated scripts, missing the opportunity to leverage the architectural benefits of a programmatic framework. In software engineering, integrating separate components into a unified system is a well-established discipline that relies on a modular approach; breaking a program into distinct, functional blocks which interact with one another in standardised ways. Thus, a practical demonstration of how to straightforwardly implement multi-component CEA models following software engineering best practices could address this gap.</p>
 </section>
 <section id="general-problem" class="level1" data-number="2">
 <h1 data-number="2"><span class="header-section-number">2</span> General problem</h1>
@@ -237,8 +239,9 @@ window.Quarto = {
 <li>Process the combined results of the DT and MM</li>
 <li>Repeat steps (i)-(vi) for a probabilistic sensitivity analysis (PSA)</li>
 </ol>
-<p>This process is represented in the flowchart in <a href="#fig-flowchart-combined" class="quarto-xref">Figure&nbsp;1</a>. The data may be passed amongst the modules directly, which is reasonable with the same software. Alternatively, the data may be stored externally in intermediate steps and then read in when required. The diagram can be read roughly from left to right, corresponding to (i) to (vi) above. It is not uncommon for different submodels to be implemented in different software such as MS Excel, R, Python, and Stata. We will not detail the inference stage where the parameters of the model are estimated. This can be done in a frequentist or Bayesian paradigm.</p>
+<p>This process is represented in the flowchart in <a href="#fig-flowchart-combined" class="quarto-xref">Figure&nbsp;1</a>. The data may be passed among the modules directly, which is reasonable with the same software. Alternatively, the data may be stored externally in intermediate steps and then read in when required. The diagram can be read roughly from left to right, corresponding to (i) to (vi) above. It is not uncommon for different submodels to be implemented in different software such as MS Excel, R, Python, and Stata. We will not detail the inference stage where the parameters of the model are estimated. This can be done in a frequentist or Bayesian paradigm.</p>
 <p>There are already several excellent tutorials on how to build simple DT models or MM for cost-effectiveness analysis. The intention of this paper is to build on these and develop the scope of applications to more realistic problems encountered in industry and regulatory submissions. It was sensible to start with simpler tutorials when people from other software, such as MS Excel, are brought to programmatic implementations such as R, but there is a desire now to further develop the available toolkit and skill in the field.</p>
+<p>[#COMMENT: still not sure this figure is particularly useful]</p>
 <div id="fig-flowchart-combined" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-flowchart-combined-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -255,17 +258,20 @@ Figure&nbsp;1: Swimlane flowchart diagram for a cost-effectiveness model compris
 <p>In this paper, we propose a unified and structured approach to building cost-effectiveness models using declarative rather than imperative programming. Unlike the traditional imperative approach — where the programmer manually manages every computational step to dictate how a task is carried out — declarative programming focuses on logically describing what the program should accomplish. Key characteristics of this approach include the abstraction of control flow and the automatic handling of background implementation details. In the context of unifying a decision tree (DT) and Markov model (MM), this framework simplifies the simulation and cost-effectiveness calculations while automatically managing the flow of data between modules.</p>
 <p>This framework does not replace good modelling practice, such as modularity, but rather supports and strengthens it. While some might worry that bundling parts of a model together (i.e., increasing “coupling”) can make code harder to manage, our framework is designed to avoid these problems and instead promote clarity, reusability, and scalability. Through reframing an existing model, we highlight the benefits of moving to an object-oriented programming (OOP) approach.</p>
 <p>In practical terms, this approach simplifies and clarifies key aspects of the modelling process. Specifically, it streamlines how simulations are executed (e.g., cohort transitions through a DT or MM), how costs and health outcomes are calculated, and how data seamlessly flows between distinct model components.</p>
+<p>[#COMMENT: the above section reads a bit repetitive to the intro/general problem sections - could probably reduce or remove altogether?]</p>
 </section>
 <section id="s3-and-object-oriented-programming-in-r" class="level1" data-number="4">
 <h1 data-number="4"><span class="header-section-number">4</span> S3 and object-oriented programming in R</h1>
 <p>A cornerstone of our approach is the use of S3 OOP in R. The broader statistical computing and data science communities have long leveraged R’s native S3 object-oriented system to unify disparate modelling architectures, notably seen in the <em>tidymodels</em> <span class="citation" data-cites="tidymodels">(<a href="#ref-tidymodels" role="doc-biblioref">Kuhn and Wickham 2020</a>)</span> ecosystem. Meanwhile, health technology assessment (HTA) tutorials have largely overlooked this approach. Current HTA model development in R typically relying on rigid, imperative scripting that mimics legacy spreadsheet logic. We demonstrate how S3 method dispatch can serve as a lightweight, native adaptor to seamlessly link sequential model components (e.g., decision trees and Markov models) into a unified pipeline. <a href="#tbl-s3classes" class="quarto-xref">Table&nbsp;1</a> gives an overview of some common S3 object classes in R.</p>
 <p>S3 OOP helps to manage model structure more cleanly. For instance, we can define a <em>generic</em> function like <code>print()</code> or <code>summarize()</code> that works differently depending on the type of object it is applied to (e.g., a DT vs.&nbsp;a MM). R automatically chooses the correct method based on the <em>class</em> of the input, a process known as method <em>dispatch</em>. In R, S3 class is just a standard R data structure (usually a list) that has a class attribute assigned to it.</p>
+<p>For example, when <code>print()</code> is used on a data.frame, it recognizes the input as a data.frame, it then uses a pre-defined function <code>print.data.frame()</code> which takes the input to be two-dimensional tabular dataset and formats the output into a grid to print with columns and rows. Whereas, if the the input to <code>print()</code> is a list it uses <code>print.default()</code> which takes the input to be a recursive holder of heterogeneous objects and will print each element by element using $.</p>
 <p>By decoupling the generic interface from its specific implementation, this approach facilitates highly reusable code. Instead of maintaining separate simulation functions for distinct model structures, an analyst can define a single common interface. R’s internal method dispatch mechanism then automatically executes the correct subroutine. In OOP terminology, this is called <em>polymorphism</em>. This architectural shift provides several key methodological advantages:</p>
 <ul>
 <li><strong>Unification:</strong> Disparate model types (e.g., decision trees and Markov models) can be manipulated through a single, consistent syntax.</li>
 <li><strong>Efficiency:</strong> It minimizes code redundancy and reduces the risk of manual transcription errors.</li>
 <li><strong>Maintainability:</strong> It yields a modular codebase that is easier to debug, audit, and extend.</li>
 <li><strong>Extensibility:</strong> It permits the addition of novel model structures or summary functions without necessitating changes to the core logic.</li>
+<li><strong>Robustness:</strong> It lends itself to assertions being consistently implemented across model inputs, processes and outputs.</li>
 </ul>
 <p>Ultimately, deploying S3 object-oriented programming formalizes cost-effectiveness models as distinct computational objects with consistent behaviours, substantially enhancing analytical extensibility, transparency and structural flexibility.</p>
 <div id="tbl-s3classes" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -311,7 +317,7 @@ Table&nbsp;1: Examples of S3 classes in R and how they are defined.
 <h2 data-number="4.1" class="anchored" data-anchor-id="r-code-s3-example"><span class="header-section-number">4.1</span> R code S3 example</h2>
 <p>Below is a full example of using S3 method dispatch in R. We define a custom generic function to print to the console <code>printModel()</code> and two class-specific methods for objects of class “<code>MarkovModel</code>” and “<code>DiseaseModel</code>”.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a generic function for printing model objects</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a generic function for printing model objects</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>printModel <span class="ot">&lt;-</span> <span class="cf">function</span>(x, ...) {</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">UseMethod</span>(<span class="st">"printModel"</span>)</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>}</span>
@@ -341,12 +347,12 @@ Table&nbsp;1: Examples of S3 classes in R and how they are defined.
 <span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Call generic function ---</span></span>
 <span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="co"># Dispatches to printModel.MarkovModel</span></span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="fu">printModel</span>(x1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="fu">printModel</span>(x1)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>A Markov model with states: Healthy, Sick, Dead </code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Dispatches to printModel.DiseaseModel</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">printModel</span>(x2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Dispatches to printModel.DiseaseModel</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">printModel</span>(x2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Disease model states: Mild -&gt; Severe -&gt; Death </code></pre>
 </div>
@@ -363,20 +369,22 @@ Table&nbsp;1: Examples of S3 classes in R and how they are defined.
 <p>In an OOP architecture, managing the data flow between distinct components requires specific functional roles. To begin, <em>constructor</em> functions are required to instantiate the objects. These functions take raw input data and format them into a classed object (e.g., turning a standard list into a formal <code>DecisionTree</code> or <code>MarkovModel</code> object) so that generic functions know how to interact with it.</p>
 <p>Once the objects are instantiated, linking different model components seamlessly relies on the “Adaptor pattern”. In software engineering, an adaptor allows objects with incompatible interfaces to work together. For health economists, this can be thought of as a standardized “data translator”.</p>
 <p>For example, a DT might output a simple vector of patient proportions, but a MM might require a specific starting cohort matrix. Rather than cluttering the main analysis script with ad-hoc data manipulation code to bridge this gap, the Adaptor pattern acts as a dedicated bridge. This automatically converts the output of the source model into the exact format expected by the target model. This is implemented by wrapping the model execution in a function that handles the translation seamlessly behind the scenes:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>modelfun.modelclass <span class="ot">&lt;-</span> <span class="cf">function</span>(x, ...) {</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>modelfun.modelclass <span class="ot">&lt;-</span> <span class="cf">function</span>(x, ...) {</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Translate incoming data into a format the model needs</span></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Execute the model</span></span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Translate results back into a standardized output format</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Finally, to manage the end-to-end execution of these linked models, an <em>orchestrator</em> function is employed. The orchestrator is responsible for iterating through the chain of assembled models, executing each one, and triggering the appropriate adaptors to pass the output of one model directly into the input of the next.</p>
+<p>[#COMMENT: I think here a figure would be more useful than current figure 1, showing the flow of and examples of CONSTRUCTOR –&gt; ADAPTOR –&gt; OCHESTRATOR, maybe with the print() example or another one which base R/familiar package e.g.&nbsp;data.table uses]</p>
 </section>
 </section>
 <section id="case-study-multiple-screening-episodes" class="level1" data-number="5">
 <h1 data-number="5"><span class="header-section-number">5</span> Case study: Multiple screening episodes</h1>
-<p>We reframe a previously published screening CEA model, built for the purposes of teaching and training in R <span class="citation" data-cites="lin2023simple">(<a href="#ref-lin2023simple" role="doc-biblioref">Lin, O’Mahony, and Rosmalen 2023</a>)</span>. The example will demonstrate the different implementation approaches in a real-world case study. This is a CEA model that involves multiple screening sessions over a lifetime where, at the point of every screening session, individuals can be redistributed across health states in a MM based on their screening results <span class="citation" data-cites="Afonso2023 Hazen2002 hollenberg1984markov">(<a href="#ref-Afonso2023" role="doc-biblioref">Afonso et al. 2023</a>; <a href="#ref-Hazen2002" role="doc-biblioref">Hazen 2002</a>; <a href="#ref-hollenberg1984markov" role="doc-biblioref">Hollenberg 1984</a>)</span>.</p>
+<p>We reframe a previously published screening CEA model, built for the purposes of teaching and training in R <span class="citation" data-cites="lin2023simple">(<a href="#ref-lin2023simple" role="doc-biblioref">Lin et al. 2023</a>)</span>. The example will demonstrate the different implementation approaches in a real-world case study. This is a CEA model that involves multiple screening sessions over a lifetime where, at the point of every screening session, individuals can be redistributed across health states in a MM based on their screening results <span class="citation" data-cites="Afonso2023 Hazen2002 hollenberg1984markov">(<a href="#ref-Afonso2023" role="doc-biblioref">Afonso et al. 2023</a>; <a href="#ref-Hazen2002" role="doc-biblioref">Hazen 2002</a>; <a href="#ref-hollenberg1984markov" role="doc-biblioref">Hollenberg 1984</a>)</span>.</p>
+<p>[#COMMENT: trying to add a line to make it explicitly clear that the results aren’t going to match the paper because its a different model “black box” we use? i think?]. We take the data and premise of the aforementioned screening model but utilise a different model [for simplicity]??</p>
 <section id="data" class="level2" data-number="5.1">
 <h2 data-number="5.1" class="anchored" data-anchor-id="data"><span class="header-section-number">5.1</span> Data</h2>
-<p>The scenarios included are for five screening intervals of 2, 5, 10, 15, 20 years, and six total number of screening episodes 1, 2, 3, 4, 5, 10. <a href="#fig-screening-model" class="quarto-xref">Figure&nbsp;2</a> shows the high-level diagram of the screening model from <span class="citation" data-cites="lin2023simple">Lin, O’Mahony, and Rosmalen (<a href="#ref-lin2023simple" role="doc-biblioref">2023</a>)</span>. The Markov model and decision tree diagrams are shown in <a href="#fig-markov-model" class="quarto-xref">Figure&nbsp;3</a> and <a href="#fig-decision-tree-model" class="quarto-xref">Figure&nbsp;4</a>.</p>
+<p>The scenarios included are for five screening intervals of 2, 5, 10, 15, 20 years, and six total number of screening episodes 1, 2, 3, 4, 5, 10. <a href="#fig-screening-model" class="quarto-xref">Figure&nbsp;2</a> shows the high-level diagram of the screening model from <span class="citation" data-cites="lin2023simple">Lin et al. (<a href="#ref-lin2023simple" role="doc-biblioref">2023</a>)</span>. The Markov model and decision tree diagrams are shown in <a href="#fig-markov-model" class="quarto-xref">Figure&nbsp;3</a> and <a href="#fig-decision-tree-model" class="quarto-xref">Figure&nbsp;4</a>.</p>
 <p>The data for the Markov model consist of the state transition probability matrix <span class="math display">\[
 P = \begin{bmatrix}
 0.9 &amp; 0.05 &amp; 0 &amp; 0 &amp; 0 &amp; 0.05 \\
@@ -407,7 +415,7 @@ P(\text{FN} \mid \text{Disease}) &amp;= 0.0
 <img src="model-diagram.png" class="img-fluid figure-img" style="width:100.0%">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-screening-model-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;2: Screening model diagram taken from <span class="citation" data-cites="lin2023simple">Lin, O’Mahony, and Rosmalen (<a href="#ref-lin2023simple" role="doc-biblioref">2023</a>)</span>. The white health states represent the natural history of disease. The two interventions, screening and treatment, are labelled in green. The screening intervention can only be implemented before the individual enters clinical health state (stage 3), and treatment can be received when patients are diagnosed from screening (stage 2) or clinically presented (stage 3).
+Figure&nbsp;2: Screening model diagram taken from <span class="citation" data-cites="lin2023simple">Lin et al. (<a href="#ref-lin2023simple" role="doc-biblioref">2023</a>)</span>. The white health states represent the natural history of disease. The two interventions, screening and treatment, are labelled in green. The screening intervention can only be implemented before the individual enters clinical health state (stage 3), and treatment can be received when patients are diagnosed from screening (stage 2) or clinically presented (stage 3).
 </figcaption>
 </figure>
 </div>
@@ -435,14 +443,15 @@ Figure&nbsp;4: Decision tree model component diagram for the screening example.
 </section>
 <section id="r-implementation" class="level1" data-number="6">
 <h1 data-number="6"><span class="header-section-number">6</span> R implementation</h1>
-<p>The analysis was carried-out in R version 4.6.0. All code is available on GitHub at <a href="https://github.com/n8thangreen/modularce" class="uri">https://github.com/n8thangreen/modularce</a>. Because of limited space and to focus the exposition, we do not include function input checks (called <em>asserts</em>) and other additional code, which it is good practice to include.</p>
+<p>The analysis was carried-out in R version 4.6.0. All code is available on GitHub at <a href="https://github.com/n8thangreen/modularce" class="uri">https://github.com/n8thangreen/modularce</a>. Because of limited space and to focus the exposition, we do not include function input checks for quality assurance (called <em>asserts</em>) and other additional validation code, which it is good practice to include. [#COMMENT: some are included in the code, so changed wording slightly]</p>
 <p>The MM engine code is based on <span class="citation" data-cites="Green2023">Green et al. (<a href="#ref-Green2023" role="doc-biblioref">2023</a>)</span> and is considered a black-box for our purposes. It is sufficient to define it in terms of the <em>contract</em>, that is, what values it requires as inputs and what output we can expect to obtain from it. We will principally use base R functions in the examples. This is to minimise the number of dependencies and make the code more robust and reproducible. We consider the CHEERS checklist <span class="citation" data-cites="husereau_consolidated_2022">(<a href="#ref-husereau_consolidated_2022" role="doc-biblioref">Husereau et al. 2022</a>)</span> for the key components of an analysis which we need to take account of in our proposed framework. We do not discount costs or health to present values for this simple model, but in practice this is a core consideration.</p>
 <section id="s3-framework" class="level2" data-number="6.1">
 <h2 data-number="6.1" class="anchored" data-anchor-id="s3-framework"><span class="header-section-number">6.1</span> S3 Framework</h2>
 <p>The framework leverages the S3 methodology to seamlessly transition patient cohorts. At each screening interval (2, 5, 10, 15, and 20 years), the DT calculates the immediate redistribution of individuals based on test outcomes. Instead of manual data hand-offs, the <code>update_model()</code> generic function captures these revised proportions and feeds them directly into the MM. This allows the MM to project long-term downstream costs and health outcomes continuously without breaking the computational pipeline.</p>
+<p>[#COMMENT: in above paragraph you state you don’t do any discounting but then the next code chunk has discounting, counter intuitive as a reader]</p>
 <p>The class constructor functions for a decision tree and a Markov model are:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>DecisionTree <span class="ot">&lt;-</span> <span class="cf">function</span>(data, <span class="at">disc_rate =</span> <span class="fl">0.035</span>) {</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>DecisionTree <span class="ot">&lt;-</span> <span class="cf">function</span>(data, <span class="at">disc_rate =</span> <span class="fl">0.035</span>) {</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">structure</span>(</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list</span>(<span class="at">data =</span> data,</span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">discount_rate =</span> disc_rate,</span>
@@ -469,29 +478,29 @@ Figure&nbsp;4: Decision tree model component diagram for the screening example.
 <span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>    ),</span>
 <span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">class =</span> <span class="fu">c</span>(<span class="st">"MarkovModel"</span>, <span class="st">"Model"</span>)</span>
 <span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>The <code>structure()</code> function defines an object with additional attributes, in this case class.</p>
 <p>We will also create a <code>CombinedModel()</code> constructor which will simply consist of a list of other models which have previously been created with their own class constructors as above. This structure will allow us to pass around a single object.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>CombinedModel <span class="ot">&lt;-</span> <span class="cf">function</span>(...) {</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>CombinedModel <span class="ot">&lt;-</span> <span class="cf">function</span>(...) {</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">structure</span>(<span class="fu">list</span>(...), </span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">class =</span> <span class="fu">c</span>(<span class="st">"CombinedModel"</span>, <span class="st">"Model"</span>))</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>We next define the generic functions, which are the polymorphic methods which will behave differently depending on what class of object is passed to them. This is ‘boilerplate’ R code which takes the same format every time.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>run_model <span class="ot">&lt;-</span> <span class="cf">function</span>(model, ...) {</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>run_model <span class="ot">&lt;-</span> <span class="cf">function</span>(model, ...) {</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">UseMethod</span>(<span class="st">"run_model"</span>)</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>update_model <span class="ot">&lt;-</span> <span class="cf">function</span>(model, result) {</span>
 <span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">UseMethod</span>(<span class="st">"update_model"</span>)</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>The class-specific <code>run_model()</code> methods for each of the submodels are defined next:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>run_model.MarkovModel <span class="ot">&lt;-</span> <span class="cf">function</span>(model, ...) {</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>run_model.MarkovModel <span class="ot">&lt;-</span> <span class="cf">function</span>(model, ...) {</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">markov_model</span>(</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">start_pop     =</span> model<span class="sc">$</span>init_probs,</span>
 <span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">trans_mat     =</span> model<span class="sc">$</span>trans_matrix,</span>
@@ -525,12 +534,12 @@ Figure&nbsp;4: Decision tree model component diagram for the screening example.
 <span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">path_results  =</span> path,</span>
 <span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">time_elapsed  =</span> <span class="dv">0</span></span>
 <span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>As already stated, we assume the internal simulation engines of the decision tree, <code>calculate_pathways()</code>, and Markov model, <code>markov_model()</code>, as black boxes for our purposes. The full code is all available in the GitHub repo.</p>
 <p>Next, we define the adaptor functions for each of the submodels. These are model-specific functions derived from the generic <code>update_model()</code>. In each case, results from the previous model in the pipeline are passed in and adapted appropriately to be input for the subsequent model, as defined by the class of the first argument.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>update_model.MarkovModel <span class="ot">&lt;-</span> <span class="cf">function</span>(model, prev_result) {</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>update_model.MarkovModel <span class="ot">&lt;-</span> <span class="cf">function</span>(model, prev_result) {</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(prev_result<span class="sc">$</span>path_results) <span class="sc">&amp;&amp;</span> <span class="sc">!</span><span class="fu">is.null</span>(model<span class="sc">$</span>mapping)) {</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    all_nm <span class="ot">&lt;-</span> <span class="fu">colnames</span>(model<span class="sc">$</span>trans_matrix)</span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    new_init <span class="ot">&lt;-</span> <span class="fu">setNames</span>(<span class="fu">rep</span>(<span class="dv">0</span>, <span class="fu">length</span>(all_nm)), all_nm)</span>
@@ -559,11 +568,11 @@ Figure&nbsp;4: Decision tree model component diagram for the screening example.
 <span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>    model<span class="sc">$</span>data <span class="ot">&lt;-</span> tree</span>
 <span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>  }</span>
 <span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>  model</span>
-<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>The final key element is the orchestrator function. This higher-level function takes as first argument an object of class <code>CombinedModel</code> and steps through each of the component submodels by running and updating data for the appropriate submodel-specific methods of <code>run_model()</code> and <code>update_model()</code>.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>run_model.CombinedModel <span class="ot">&lt;-</span> <span class="cf">function</span>(model, ...) {</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>run_model.CombinedModel <span class="ot">&lt;-</span> <span class="cf">function</span>(model, ...) {</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  results <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  current_time <span class="ot">&lt;-</span> <span class="dv">0</span>  <span class="co"># initialise internal clock</span></span>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  </span>
@@ -584,25 +593,25 @@ Figure&nbsp;4: Decision tree model component diagram for the screening example.
 <span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>    current_time <span class="ot">&lt;-</span> current_time <span class="sc">+</span> res<span class="sc">$</span>time_elapsed</span>
 <span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>  }</span>
 <span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>  results</span>
-<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="input-data" class="level2" data-number="6.2">
 <h2 data-number="6.2" class="anchored" data-anchor-id="input-data"><span class="header-section-number">6.2</span> Input data</h2>
 <p>Now that the function preparatory code is complete, the input data as defined in the Data section above are translated into R code. We define a simulation duration of 20 years and define the screening programme in terms of the time between screening and the number of screening episodes. The analysis will investigate all combinations of intervals and episode values.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define the grid of parameters</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define the grid of parameters</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>time_horizon <span class="ot">&lt;-</span> <span class="dv">20</span></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>t_between_screens <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span></span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>num_screens <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span></span>
 <span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co"># t_between_screens &lt;- c(2, 5, 10, 15, 20)</span></span>
 <span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="co"># num_screens &lt;- c(1, 2, 3, 4, 5, 10)</span></span>
 <span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Set your new discount rate</span></span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>discount_rate <span class="ot">&lt;-</span> <span class="fl">0.035</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>discount_rate <span class="ot">&lt;-</span> <span class="fl">0.035</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>The decision tree data are defined as a <code>tribble()</code> from the <em>tibble</em> package which allows us to write it in the same format that it will be printed for clearer code (<strong>?@fig-code-input-dt</strong>).</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>decision_tree <span class="ot">&lt;-</span> tibble<span class="sc">::</span><span class="fu">tribble</span>(</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>decision_tree <span class="ot">&lt;-</span> tibble<span class="sc">::</span><span class="fu">tribble</span>(</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span>from,                  <span class="sc">~</span>to,                    <span class="sc">~</span>prob, <span class="sc">~</span>cost, <span class="sc">~</span>eff,</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"root"</span>,                 <span class="st">"Healthy"</span>,              <span class="fl">0.80</span>,      <span class="dv">0</span>,    <span class="dv">0</span>,</span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"root"</span>,                 <span class="st">"Pre_clinical_Disease"</span>, <span class="fl">0.15</span>,      <span class="dv">0</span>,    <span class="dv">0</span>,  <span class="co"># Markov model</span></span>
@@ -616,11 +625,11 @@ Figure&nbsp;4: Decision tree model component diagram for the screening example.
 <span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Pre_clinical_Disease"</span>, <span class="st">"FN_Preclinical"</span>,       <span class="fl">0.30</span>,     <span class="dv">50</span>,    <span class="dv">0</span>,  <span class="co"># False Negative</span></span>
 <span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Disease"</span>,              <span class="st">"TP_Disease"</span>,           <span class="fl">1.00</span>,    <span class="dv">200</span>,    <span class="dv">0</span>,  <span class="co"># True Positive</span></span>
 <span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Disease"</span>,              <span class="st">"FN_Disease"</span>,           <span class="fl">0.00</span>,     <span class="dv">50</span>,    <span class="dv">0</span>   <span class="co"># False Negative</span></span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>The Markov model transition probability matrix is defined in <strong>?@fig-code-input-mm</strong>.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>states <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>states <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Healthy"</span>, <span class="st">"Pre_clinical_Disease"</span>, <span class="st">"Disease"</span>, <span class="st">"Treated"</span>, <span class="st">"Death_from_Disease"</span>, </span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Other_Cause_Death"</span>)</span>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -637,11 +646,11 @@ Figure&nbsp;4: Decision tree model component diagram for the screening example.
 <span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">nrow =</span> <span class="dv">6</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>,</span>
 <span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">dimnames =</span> <span class="fu">list</span>(<span class="at">from =</span> states, </span>
 <span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>                  <span class="at">to =</span> states)</span>
-<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>The state cost and health values are defined as follows:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>cost_vec <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>cost_vec <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">Healthy              =</span> <span class="dv">0</span>,</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">Pre_clinical_Disease =</span> <span class="dv">0</span>,</span>
 <span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">Disease              =</span> <span class="dv">0</span>,</span>
@@ -667,11 +676,11 @@ Figure&nbsp;4: Decision tree model component diagram for the screening example.
 <span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">Treated              =</span> <span class="fl">0.0</span>,</span>
 <span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>  <span class="at">Death_from_Disease   =</span> <span class="fl">0.0</span>,</span>
 <span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>  <span class="at">Other_Cause_Death    =</span> <span class="fl">0.0</span></span>
-<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Finally, we need to define the mapping from the decision tree terminal nodes to the Markov model states:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>mapping <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>mapping <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">FP                 =</span> <span class="st">"Treated"</span>,</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">TN                 =</span> <span class="st">"Healthy"</span>,</span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">TP_Preclinical     =</span> <span class="st">"Treated"</span>,</span>
@@ -681,14 +690,14 @@ Figure&nbsp;4: Decision tree model component diagram for the screening example.
 <span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">Death_from_Disease =</span> <span class="st">"Death_from_Disease"</span>,</span>
 <span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">Other_Cause_Death  =</span> <span class="st">"Other_Cause_Death"</span>,</span>
 <span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">Treated            =</span> <span class="st">"Treated"</span></span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="analysis" class="level2" data-number="6.3">
 <h2 data-number="6.3" class="anchored" data-anchor-id="analysis"><span class="header-section-number">6.3</span> Analysis</h2>
 <p>Having established the simulation code and input data, it is straightforward to run the analysis inside of a loop over the scenarios.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Loop through scenarios and execute the unified framework</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Loop through scenarios and execute the unified framework</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>all_results <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
 <span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>dt <span class="ot">&lt;-</span> <span class="fu">DecisionTree</span>(decision_tree, <span class="at">disc_rate =</span> discount_rate)</span>
@@ -730,8 +739,10 @@ Figure&nbsp;4: Decision tree model component diagram for the screening example.
 <span id="cb17-40"><a href="#cb17-40" aria-hidden="true" tabindex="-1"></a>      <span class="at">results           =</span> results_scenario</span>
 <span id="cb17-41"><a href="#cb17-41" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb17-42"><a href="#cb17-42" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb17-43"><a href="#cb17-43" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb17-43"><a href="#cb17-43" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<p>Note that do.call(CombinedModel, args = submodels) is equivalent to calling the function CombinedModel() applied to listed submodels (i.e. CombinedModel(dt, mm_scenario, dt, mm_scenario…)), giving one decision tree followed by one markov model for each of the n_scr screening scenarios. It then utlises the <code>run_model.CombinedModel()</code> , defined earlier, to run the model on the CombindeModel object. This, in turn, is using the run_model() and update_model() functions based on if it is a DT or MM object being passed through at that ‘point in time’.</p>
+<p>[#COMMENT: check the sentences i added above are correct]</p>
 </section>
 <section id="probabilistic-sensitivity-analysis" class="level2" data-number="6.4">
 <h2 data-number="6.4" class="anchored" data-anchor-id="probabilistic-sensitivity-analysis"><span class="header-section-number">6.4</span> Probabilistic sensitivity analysis</h2>
@@ -740,13 +751,14 @@ Figure&nbsp;4: Decision tree model component diagram for the screening example.
 <section id="design-choices" class="level2" data-number="6.5">
 <h2 data-number="6.5" class="anchored" data-anchor-id="design-choices"><span class="header-section-number">6.5</span> Design choices</h2>
 <p>Even within the proposed architecture there are several subjective design decisions to make, which can depend on the specifics of the problem at hand. One design choice is where in the code to perform the linking of models. One option is to chain the models together when we create them or another option is to do this at the same time as running the model. There are pros and cons to each approach.</p>
-<p>Another issue is to do with the generalisability of linking models. Should the code use the information about which type of model is being linked from (source) and linked to (target)? In an OOP framework this would require something called <em>double dispatch</em> which is not the original intention of S3 in R but can be manufactured using it and is implemented in packages such as <em>vctrs</em> <span class="citation" data-cites="vctrs2026">(<a href="#ref-vctrs2026" role="doc-biblioref">Wickham, Henry, and Vaughan 2026</a>)</span>. Taking into account these considerations, in our case study example we have placed the linking logic within the model running function. We have also assumed that given a target model, we then know what the source model is. This is reasonable in our context and keeps the code clean for demonstration purposes. An alternative version of our code using the double dispatch approach employed by <em>vctrs</em> is also available in the supplementary material. The newer and less adopted S7 OOP system in R does natively support multiple dispatch which could elegantly solve the problem with a little more advanced code. We provide a version of the code in the supplementary material.</p>
+<p>Another issue is to do with the generalisability of linking models. The current approach outlined above focuses on “single dispatch”, i.e.&nbsp;the function focuses on “what type of object is the input”. One question can then be should the code also use the information about which type of object (aka model in our case) is being linked from (source) and which type of object (model) is the target? In other words, taking into consideration source model type and output model type. In an OOP framework this would require something called <em>double dispatch</em> which is not the original intention of S3 in R but can be manufactured using it and is implemented in packages such as <em>vctrs</em> <span class="citation" data-cites="vctrs2026">(<a href="#ref-vctrs2026" role="doc-biblioref">Wickham et al. 2026</a>)</span>.</p>
+<p>Taking into account these considerations, in our case study example we have placed the linking logic within the model running function. We have also assumed that given a target model, we then know what the source model is. This is reasonable in our context and keeps the code clean for demonstration purposes.</p>
+<p>An alternative version of our code using the double dispatch approach employed by <em>vctrs</em> is also available in the supplementary material. The newer and less adopted S7 OOP system in R does natively support multiple dispatch which could elegantly solve the problem with a little more advanced code. We provide a version of the code in the supplementary material.</p>
 <p>Our decision to utilize an S3-based orchestrator to link sequential model components aligns with established best practices in modern R software engineering. For instance, the <em>tidymodels</em> ecosystem (specifically the <em>workflows</em> and <em>stacks</em> packages) relies heavily on S3 generics to handle the sequential passing of data between preprocessing steps, individual models, and ensemble meta-models.</p>
 <p>A Unified Markup Language (UML) diagram of the code structure is given in Appendix <a href="#fig-UML" class="quarto-xref">Figure&nbsp;10</a>. This shows how all of the functions are related to each other.</p>
 </section>
-</section>
-<section id="results" class="level1" data-number="7">
-<h1 data-number="7"><span class="header-section-number">7</span> Results</h1>
+<section id="results" class="level2" data-number="6.6">
+<h2 data-number="6.6" class="anchored" data-anchor-id="results"><span class="header-section-number">6.6</span> Results</h2>
 <p><a href="#fig-occupy-combined" class="quarto-xref">Figure&nbsp;5</a> illustrates the state occupancy over a 20-year time horizon for the 2-year and 10-year screening intervals. These plots demonstrate the expected dynamics: more frequent screening redistributes the population more rapidly into the “Treated” and “Disease” states.</p>
 <div id="fig-occupy-combined" class="quarto-layout-panel">
 <figure class="quarto-float quarto-float-fig figure">
@@ -802,9 +814,15 @@ Figure&nbsp;6: Cost-effectiveness plot for screening intervals of 1 to 5 years, 
 </div>
 </div>
 </section>
-<section id="changes-in-model-and-data" class="level1" data-number="8">
-<h1 data-number="8"><span class="header-section-number">8</span> Changes in Model and Data</h1>
-<p>As for the previous example, the PSM engine it assumed a blackbox for our purposes so is not shown here but all code is avaialable in the GitHub repository.</p>
+<section id="structural-adaptations-via-s3-class-specialisation" class="level2" data-number="6.7">
+<h2 data-number="6.7" class="anchored" data-anchor-id="structural-adaptations-via-s3-class-specialisation"><span class="header-section-number">6.7</span> Structural Adaptations via S3 Class Specialisation</h2>
+<p>When a jurisdiction mandates a structural change—such as an alternative long-term extrapolation method or an additional post-progression therapy branch, we can use class derivation (e.g., <code>c("MarkovModel_PBAC", "MarkovModel", "Model")</code>).</p>
+<p><code>asa # PBAC structural variant: models continuous PBS dynamic market-share erosion MarkovModel_PBAC &lt;- function(trans_matrix, costs, utils,                               erosion_rate = 0.05, mapping = NULL, ...) {   mod &lt;- MarkovModel(trans_matrix = trans_matrix, costs = costs,                       utils = utils, mapping = mapping, ...)   mod$erosion_rate &lt;- erosion_rate   class(mod) &lt;- c("MarkovModel_PBAC", class(mod))   mod }  # Specific S3 method dispatch: PBAC applies market-share price cuts over cycles run_model.MarkovModel_PBAC &lt;- function(model) {   # Apply country-specific dynamic erosion adjustment before running   model$cost_vector &lt;- model$cost_vector * (1 - model$erosion_rate)      # Delegate core execution to base Markov runner   NextMethod("run_model") }</code></p>
+<p>The <code>NextMethod()</code> function delegates the heavy matrix operations directly to the verified global engine (<code>run_model.MarkovModel</code>). The central orchestrator <code>run_model.CombinedModel</code> runs without touching a line of code.</p>
+</section>
+<section id="partitioned-survival-model" class="level2" data-number="6.8">
+<h2 data-number="6.8" class="anchored" data-anchor-id="partitioned-survival-model"><span class="header-section-number">6.8</span> Partitioned Survival model</h2>
+<p>We now also demonstrate using an object oriented approach when using a partitioned survival model (PSM). As for the previous example, the PSM engine it assumed a blackbox for our purposes so is not shown here but all code is available in the GitHub repository [<a href="https://github.com/n8thangreen/modularce" class="uri">https://github.com/n8thangreen/modularce</a>].</p>
 <div class="cell">
 <div class="cell-output-display">
 <div id="fig-natural-history" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -819,11 +837,9 @@ Figure&nbsp;7: Natural history state occupancy with fitted PartSA survival curve
 </div>
 </div>
 </div>
-<section id="submodel-substitution" class="level3" data-number="8.0.1">
-<h3 data-number="8.0.1" class="anchored" data-anchor-id="submodel-substitution"><span class="header-section-number">8.0.1</span> Submodel substitution</h3>
-<p>From a Markov model to a partitioned survival model (PSM).</p>
+<p>First we define the constructor function in relation to PSMs, defined in the code as “PartSAmodel” objects.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># constructor</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># constructor</span></span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>PartSAModel <span class="ot">&lt;-</span> <span class="cf">function</span>(surv_pfs, surv_os, cost_vector, </span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>                        qaly_vector, <span class="at">mapping =</span> <span class="cn">NA</span>,</span>
 <span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">time_horizon =</span> <span class="dv">10</span>,</span>
@@ -843,11 +859,11 @@ Figure&nbsp;7: Natural history state occupancy with fitted PartSA survival curve
 <span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    ),</span>
 <span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">class =</span> <span class="fu">c</span>(<span class="st">"PartSAModel"</span>, <span class="st">"Model"</span>)</span>
 <span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>S3 methods</p>
+<p>Then we add functionality to update_model and run_model functions in handling PartSAmodel objects.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' S3 update method: Ingests Decision Tree outputs</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' S3 update method: Ingests Decision Tree outputs</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co">#' into PartSA baseline parameters</span></span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>update_model.PartSAModel <span class="ot">&lt;-</span> <span class="cf">function</span>(model, result) {</span>
 <span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(result<span class="sc">$</span>path_results) <span class="sc">&amp;&amp;</span> <span class="sc">!</span><span class="fu">is.null</span>(model<span class="sc">$</span>mapping)) {</span>
@@ -857,10 +873,10 @@ Figure&nbsp;7: Natural history state occupancy with fitted PartSA survival curve
 <span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>    model<span class="sc">$</span>untreated_prev <span class="ot">&lt;-</span> <span class="fu">sum</span>(paths<span class="sc">$</span>prob[paths<span class="sc">$</span>state <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Healthy"</span>, <span class="st">"Pre_clinical_Disease"</span>, <span class="st">"Disease"</span>)])</span>
 <span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  }</span>
 <span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>  model</span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' S3 runner method: Solves the area under the curves</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' S3 runner method: Solves the area under the curves</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>run_model.PartSAModel <span class="ot">&lt;-</span> <span class="cf">function</span>(model) {</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Evaluate partitioned survival areas </span></span>
 <span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># (PFS, OS - PFS, 1 - OS)</span></span>
@@ -885,11 +901,11 @@ Figure&nbsp;7: Natural history state occupancy with fitted PartSA survival curve
 <span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>    ),</span>
 <span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">class =</span> <span class="fu">c</span>(<span class="st">"output"</span>, <span class="fu">class</span>(model))</span>
 <span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>Analysis</p>
+<p>Then we rerun the analysis function. Note that by using this framework, CombinedModel portion of the analysis code doesn’t need any redefining or adjusting and can be run as before with no coding adaptations needed on that section of the analysis code.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run the full grid of scenarios using PartSA</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run the full grid of scenarios using PartSA</span></span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>all_results_ps <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (t_val <span class="cf">in</span> t_between_screens) {</span>
 <span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (n_scr <span class="cf">in</span> num_screens) {</span>
@@ -921,7 +937,7 @@ Figure&nbsp;7: Natural history state occupancy with fitted PartSA survival curve
 <span id="cb21-30"><a href="#cb21-30" aria-hidden="true" tabindex="-1"></a>      <span class="at">results           =</span> res_ps</span>
 <span id="cb21-31"><a href="#cb21-31" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb21-32"><a href="#cb21-32" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb21-33"><a href="#cb21-33" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb21-33"><a href="#cb21-33" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="fig-occupy-combined-ps" class="quarto-layout-panel">
 <figure class="quarto-float quarto-float-fig figure">
@@ -975,78 +991,54 @@ Figure&nbsp;9: Cost-effectiveness plot for PartSA screening intervals of 1 to 5 
 </div>
 </div>
 </section>
-<section id="structural-adaptations-via-s3-class-specialisation" class="level3" data-number="8.0.2">
-<h3 data-number="8.0.2" class="anchored" data-anchor-id="structural-adaptations-via-s3-class-specialisation"><span class="header-section-number">8.0.2</span> Structural Adaptations via S3 Class Specialisation</h3>
-<p>When a jurisdiction mandates a structural change—such as an alternative long-term extrapolation method or an additional post-progression therapy branch, we can use class derivation (e.g., <code>c("MarkovModel_PBAC", "MarkovModel", "Model")</code>).</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># PBAC structural variant: models continuous PBS dynamic market-share erosion</span></span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>MarkovModel_PBAC <span class="ot">&lt;-</span> <span class="cf">function</span>(trans_matrix, costs, utils, </span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>                             <span class="at">erosion_rate =</span> <span class="fl">0.05</span>, <span class="at">mapping =</span> <span class="cn">NULL</span>, ...) {</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  mod <span class="ot">&lt;-</span> <span class="fu">MarkovModel</span>(<span class="at">trans_matrix =</span> trans_matrix, <span class="at">costs =</span> costs, </span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>                     <span class="at">utils =</span> utils, <span class="at">mapping =</span> mapping, ...)</span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  mod<span class="sc">$</span>erosion_rate <span class="ot">&lt;-</span> erosion_rate</span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">class</span>(mod) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"MarkovModel_PBAC"</span>, <span class="fu">class</span>(mod))</span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  mod</span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Specific S3 method dispatch: PBAC applies market-share price cuts over cycles</span></span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>run_model.MarkovModel_PBAC <span class="ot">&lt;-</span> <span class="cf">function</span>(model) {</span>
-<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Apply country-specific dynamic erosion adjustment before running</span></span>
-<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>  model<span class="sc">$</span>cost_vector <span class="ot">&lt;-</span> model<span class="sc">$</span>cost_vector <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> model<span class="sc">$</span>erosion_rate)</span>
-<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Delegate core execution to base Markov runner</span></span>
-<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">NextMethod</span>(<span class="st">"run_model"</span>)</span>
-<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>The <code>NextMethod()</code> function delegates the heavy matrix operations directly to the verified global engine (<code>run_model.MarkovModel</code>). The central orchestrator <code>run_model.CombinedModel</code> runs without touching a line of code.</p>
 </section>
+<section id="discussion" class="level1" data-number="7">
+<h1 data-number="7"><span class="header-section-number">7</span> Discussion</h1>
+<p>Traditional health economic models often bundle clinical pathways, cost inputs, and final calculations into a single, rigid script or spreadsheet, making them fragile and difficult to update. In contrast, our framework applies established software engineering standards to create a much more robust and adaptable system. By ensuring that each component has only one job (Single Responsibility), such as completely separating the clinical simulation from the economic payoffs, we drastically reduce the risk of errors when updating parameters. Furthermore, the architecture is designed so that new components, like a new sub-model, can be plugged into the pipeline without altering or breaking the core mathematical engine (Open-Closed Principle). Because all sub-models communicate through a standardised data contract, researchers can swap a Markov model for a different structure with confidence that the downstream calculations will still function perfectly (Liskov Substitution). Ultimately, this approach moves health economic modelling away from bespoke, tangled code and towards a transparent, modular infrastructure where each piece can be independently tested and trusted.</p>
+<p>Generative AI and vibe coding are producing and adapting health economic evaluative models at a rapid phase. Code produced by large-language models are based on training data using historical modelling, which may not always be the most appropriate. As we move towards hybrid intelligence model building processes it is important that we explore different modeling paradigms in the pursuit of robust science.</p>
 </section>
-<section id="discussion" class="level1" data-number="9">
-<h1 data-number="9"><span class="header-section-number">9</span> Discussion</h1>
-<p>Traditional health economic models often bundle clinical pathways, cost inputs, and final calculations into a single, rigid script or spreadsheet, making them fragile and difficult to update. In contrast, our framework applies established software engineering standards—specifically the SOLID principles—to create a much more robust and adaptable system. By ensuring that each component has only one job (Single Responsibility), such as completely separating the clinical simulation from the economic payoffs, we drastically reduce the risk of errors when updating parameters. Furthermore, the architecture is designed so that new components, like a custom jurisdiction profile or a new sub-model, can be plugged into the pipeline without altering or breaking the core mathematical engine (Open-Closed Principle). Because all sub-models communicate through a standardised data contract, researchers can swap a Markov model for a different structure with confidence that the downstream calculations will still function perfectly (Liskov Substitution). Ultimately, this approach moves health economic modelling away from bespoke, tangled code and towards a transparent, modular infrastructure where each piece can be independently tested and trusted.</p>
-</section>
-<section id="conclusion" class="level1" data-number="10">
-<h1 data-number="10"><span class="header-section-number">10</span> Conclusion</h1>
-<p>We have demonstrated that adopting a declarative, object-oriented programming approach using S3 in R provides a robust and scalable solution for multi-component cost-effectiveness models. By abstracting the control flow and automating data transitions between DTs and MMs, this framework directly addresses the testability, reproducibility, and efficiency issues prevalent in legacy imperative scripts. Although moving away from traditional step-by-step coding requires a paradigm shift for many health economists, the resulting unified architecture aligns health technology assessment with modern software engineering best practices. Ultimately, this improves the transparency, flexibility, and reliability of the models used to inform critical healthcare decisions.</p>
+<section id="conclusion" class="level1" data-number="8">
+<h1 data-number="8"><span class="header-section-number">8</span> Conclusion</h1>
+<p>We have demonstrated that adopting a declarative, object-oriented programming approach using S3 in R provides a robust and scalable solution for multi-component cost-effectiveness models. By abstracting the control flow and automating data transitions between combined-model components, including decision trees, markov models and partitioned survival models, this framework directly addresses the testability, reproducibility, and efficiency issues prevalent in legacy imperative scripts. Although moving away from traditional step-by-step coding requires a paradigm shift for many health economists, the resulting unified architecture aligns health technology assessment with modern software engineering best practices. Ultimately, this improves the transparency, flexibility, and reliability of the models used to inform critical healthcare decisions.</p>
 <section id="acknowledgements" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="acknowledgements">Acknowledgements</h2>
 <p>xxx</p>
 </section>
 <section id="references" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="references">References</h2>
-<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="refs" class="references csl-bib-body hanging-indent" role="list">
 <div id="ref-Afonso2023" class="csl-entry" role="listitem">
 Afonso, D, H Davies, B Avey, and S Mealing. 2023. <span>“<span class="nocase">MSR8 Nesting a Decision Tree into a Markov Model Structure: An Alternative Way of Tracking Movement in a Diagnostic Model</span>.”</span> <em>Value Heal.</em> 26 (12): S394. <a href="https://doi.org/10.1016/j.jval.2023.09.2067">https://doi.org/10.1016/j.jval.2023.09.2067</a>.
 </div>
 <div id="ref-AlaridEscudero2019" class="csl-entry" role="listitem">
-Alarid-Escudero, Fernando, Eline M. Krijkamp, Eva A. Enns, Alan Yang, M. G. Myriam Hunink, Petros Pechlivanoglou, and Hawre J. Jalal. 2019. <span>“A Framework for Decision-Analytic Modeling in <span>R</span>: Implementing Tertiary Prevention of Colorectal Cancer with a <span>Markov</span> Model.”</span> <em>Medical Decision Making</em> 39 (2): 175–84. <a href="https://doi.org/10.1177/0272989X18814775">https://doi.org/10.1177/0272989X18814775</a>.
+Alarid-Escudero, Fernando, Eline M. Krijkamp, Eva A. Enns, et al. 2019. <span>“A Framework for Decision-Analytic Modeling in <span>R</span>: Implementing Tertiary Prevention of Colorectal Cancer with a <span>Markov</span> Model.”</span> <em>Medical Decision Making</em> 39 (2): 175–84. <a href="https://doi.org/10.1177/0272989X18814775">https://doi.org/10.1177/0272989X18814775</a>.
 </div>
 <div id="ref-briggs2006decision" class="csl-entry" role="listitem">
-Briggs, Andrew, Karl Claxton, and Mark Sculpher. 2006. <em>Decision Modelling for Health Economic Evaluation</em>. Oxford, UK: Oxford University Press.
+Briggs, Andrew, Karl Claxton, and Mark Sculpher. 2006. <em>Decision Modelling for Health Economic Evaluation</em>. Oxford University Press.
 </div>
 <div id="ref-drummond2015methods" class="csl-entry" role="listitem">
-Drummond, Michael F., Mark J. Sculpher, Karl Claxton, Greg L. Stoddart, and George W. Torrance. 2015. <em>Methods for the Economic Evaluation of Health Care Programmes</em>. 4th ed. Oxford, UK: Oxford University Press.
+Drummond, Michael F., Mark J. Sculpher, Karl Claxton, Greg L. Stoddart, and George W. Torrance. 2015. <em>Methods for the Economic Evaluation of Health Care Programmes</em>. 4th ed. Oxford University Press.
 </div>
 <div id="ref-Eddy2012MDM" class="csl-entry" role="listitem">
 Eddy, David M., William Hollingworth, J. Jaime Caro, Robert Itzler, and Mark S. Townsend. 2012. <span>“Model Transparency and Validation: A Report of the <span>ISPOR-SMDM</span> Modeling Good Research Practices Task Force–7.”</span> <em>Medical Decision Making</em> 32 (5): 733–43. <a href="https://doi.org/10.1177/0272989X12454504">https://doi.org/10.1177/0272989X12454504</a>.
 </div>
 <div id="ref-Green2023" class="csl-entry" role="listitem">
-Green, Nathan, Felicity Lamrock, Niamh Naylor, Miqdad Asaria, Mark Strong, Chris Taylor, Dougie van der Wielen, and Marta O. Soares. 2023. <span>“Health Economic Evaluation Using Markov Models in r for Microsoft Excel Users: A Tutorial.”</span> <em>PharmacoEconomics</em> 41 (1): 5–19. <a href="https://doi.org/10.1007/s40273-022-01199-7">https://doi.org/10.1007/s40273-022-01199-7</a>.
+Green, Nathan, Felicity Lamrock, Niamh Naylor, et al. 2023. <span>“Health Economic Evaluation Using Markov Models in r for Microsoft Excel Users: A Tutorial.”</span> <em>PharmacoEconomics</em> 41 (1): 5–19. <a href="https://doi.org/10.1007/s40273-022-01199-7">https://doi.org/10.1007/s40273-022-01199-7</a>.
 </div>
 <div id="ref-Hazen2002" class="csl-entry" role="listitem">
 Hazen, Gordon B. 2002. <span>“<span class="nocase">Stochastic Trees and the StoTree Modeling Environment: Models and Software for Medical Decision Analysis</span>.”</span> <em>J. Med. Syst.</em> 26 (5).
 </div>
 <div id="ref-hollenberg1984markov" class="csl-entry" role="listitem">
-Hollenberg, JP. 1984. <span>“Markov Cycle Trees-a New Representation for Complex Markov-Processes.”</span> In <em>Medical Decision Making</em>, 4:529–29. 4. Hanley &amp; Belfus Inc 210 S 13th St, Philadelphia, PA 19107.
+Hollenberg, JP. 1984. <span>“Markov Cycle Trees-a New Representation for Complex Markov-Processes.”</span> <em>Medical Decision Making</em> 4: 529–29.
 </div>
 <div id="ref-husereau_consolidated_2022" class="csl-entry" role="listitem">
-Husereau, Don, Michael Drummond, Federico Augustovski, Esther de Bekker-Grob, Andrew H. Briggs, Chris Carswell, Lisa Caulley, et al. 2022. <span>“Consolidated <span>Health</span> <span>Economic</span> <span>Evaluation</span> <span>Reporting</span> <span>Standards</span> 2022 (<span>CHEERS</span> 2022) <span>Statement</span>: <span>Updated</span> <span>Reporting</span> <span>Guidance</span> for <span>Health</span> <span>Economic</span> <span>Evaluations</span>.”</span> <em>Value in Health</em> 25 (January): 3–9. <a href="https://doi.org/10.1016/j.jval.2021.11.1349">https://doi.org/10.1016/j.jval.2021.11.1349</a>.
+Husereau, Don, Michael Drummond, Federico Augustovski, et al. 2022. <span>“Consolidated <span>Health</span> <span>Economic</span> <span>Evaluation</span> <span>Reporting</span> <span>Standards</span> 2022 (<span>CHEERS</span> 2022) <span>Statement</span>: <span>Updated</span> <span>Reporting</span> <span>Guidance</span> for <span>Health</span> <span>Economic</span> <span>Evaluations</span>.”</span> <em>Value in Health</em> 25 (January): 3–9. <a href="https://doi.org/10.1016/j.jval.2021.11.1349">https://doi.org/10.1016/j.jval.2021.11.1349</a>.
 </div>
 <div id="ref-Jalal2017" class="csl-entry" role="listitem">
 Jalal, Hawre, Petros Pechlivanoglou, Eline Krijkamp, Fernando Alarid-Escudero, Eva Enns, and M. G. Myriam Hunink. 2017. <span>“An Overview of <span>R</span> in Health Decision Sciences.”</span> <em>Medical Decision Making</em> 37 (7): 735–46. <a href="https://doi.org/10.1177/0272989X16679605">https://doi.org/10.1177/0272989X16679605</a>.
 </div>
 <div id="ref-Kent2019" class="csl-entry" role="listitem">
-Kent, Seamus, Frauke Becker, Talitha Feenstra, An Tran-Duy, Iryna Schlackow, Michelle Tew, Ping Zhang, et al. 2019. <span>“The Challenge of Transparency and Validation in Health Economic Decision Modelling: A View from Mount Hood.”</span> <em>PharmacoEconomics</em> 37 (11): 1305–12. <a href="https://doi.org/10.1007/s40273-019-00825-1">https://doi.org/10.1007/s40273-019-00825-1</a>.
+Kent, Seamus, Frauke Becker, Talitha Feenstra, et al. 2019. <span>“The Challenge of Transparency and Validation in Health Economic Decision Modelling: A View from Mount Hood.”</span> <em>PharmacoEconomics</em> 37 (11): 1305–12. <a href="https://doi.org/10.1007/s40273-019-00825-1">https://doi.org/10.1007/s40273-019-00825-1</a>.
 </div>
 <div id="ref-Krijkamp2018" class="csl-entry" role="listitem">
 Krijkamp, Eline M., Fernando Alarid-Escudero, Eva A. Enns, Hawre J. Jalal, M. G. Myriam Hunink, and Petros Pechlivanoglou. 2018. <span>“A Checklist for Generating, Reporting and Modelling Decision-Analytic Models in <span>R</span>.”</span> <em>Medical Decision Making</em> 38 (8): 1000–1012. <a href="https://doi.org/10.1177/0272989X18811838">https://doi.org/10.1177/0272989X18811838</a>.
@@ -1058,10 +1050,10 @@ Kuhn, Max, and Hadley Wickham. 2020. <em>Tidymodels: A Collection of Packages fo
 Lin, Y. S., J. F. O’Mahony, and J. van Rosmalen. 2023. <span>“A Simple Cost-Effectiveness Model of Screening: An Open-Source Teaching and Research Tool Coded in <span>R</span>.”</span> <em>PharmacoEconomics - Open</em> 7 (4): 507–23. <a href="https://doi.org/10.1007/s41669-023-00414-1">https://doi.org/10.1007/s41669-023-00414-1</a>.
 </div>
 <div id="ref-rlanguage" class="csl-entry" role="listitem">
-R Core Team. 2025. <em>R: A Language and Environment for Statistical Computing</em>. Vienna, Austria: R Foundation for Statistical Computing. <a href="https://www.R-project.org/">https://www.R-project.org/</a>.
+R Core Team. 2025. <em>R: A Language and Environment for Statistical Computing</em>. R Foundation for Statistical Computing. <a href="https://www.R-project.org/">https://www.R-project.org/</a>.
 </div>
 <div id="ref-Sandercock2004" class="csl-entry" role="listitem">
-Sandercock, Peter, Eivind Berge, Martin Dennis, John Forbes, Philip Gorelick, Graeme Hankey, Richard Lindley, Joanna Wardlaw, and Charles Warlow. 2004. <span>“Cost-Effectiveness of Thrombolysis with Recombinant Tissue-Type Plasminogen Activator for Acute Ischemic Stroke: Assessed by a Model Based on <span>UK</span> <span>NHS</span> Costs.”</span> <em>Stroke</em> 35 (6): 1490–97. <a href="https://doi.org/10.1161/01.STR.0000128706.77784.b8">https://doi.org/10.1161/01.STR.0000128706.77784.b8</a>.
+Sandercock, Peter, Eivind Berge, Martin Dennis, et al. 2004. <span>“Cost-Effectiveness of Thrombolysis with Recombinant Tissue-Type Plasminogen Activator for Acute Ischemic Stroke: Assessed by a Model Based on <span>UK</span> <span>NHS</span> Costs.”</span> <em>Stroke</em> 35 (6): 1490–97. <a href="https://doi.org/10.1161/01.STR.0000128706.77784.b8">https://doi.org/10.1161/01.STR.0000128706.77784.b8</a>.
 </div>
 <div id="ref-vctrs2026" class="csl-entry" role="listitem">
 Wickham, Hadley, Lionel Henry, and Davis Vaughan. 2026. <em>Vctrs: Vector Helpers</em>. <a href="https://vctrs.r-lib.org/">https://vctrs.r-lib.org/</a>.
@@ -1074,8 +1066,8 @@ Wu, Eric Q., Zheng-Yi Zhou, Jipan Xie, Cinzia Metallo, and Praveen Thokala. 2019
 </section>
 <section id="appendix" class="level1 unnumbered">
 <h1 class="unnumbered">Appendix</h1>
-<section id="sec-uml" class="level2" data-number="10.1">
-<h2 data-number="10.1" class="anchored" data-anchor-id="sec-uml"><span class="header-section-number">10.1</span> UML</h2>
+<section id="sec-uml" class="level2" data-number="8.1">
+<h2 data-number="8.1" class="anchored" data-anchor-id="sec-uml"><span class="header-section-number">8.1</span> UML</h2>
 <div id="fig-UML" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-UML-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -1086,245 +1078,250 @@ Figure&nbsp;10: UML diagram for the decision tree - Markov model code. Inheritan
 </figcaption>
 </figure>
 </div>
+<p>[#COMMENT: need to add vctrs &amp; S7 description of remove related sentence from main manuscript]</p>
 </section>
 </section>
 
 </main>
 <!-- /main column -->
 <script id="quarto-html-after-body" type="application/javascript">
-window.document.addEventListener("DOMContentLoaded", function (event) {
-  const toggleBodyColorMode = (bsSheetEl) => {
-    const mode = bsSheetEl.getAttribute("data-mode");
-    const bodyEl = window.document.querySelector("body");
-    if (mode === "dark") {
-      bodyEl.classList.add("quarto-dark");
-      bodyEl.classList.remove("quarto-light");
-    } else {
-      bodyEl.classList.add("quarto-light");
-      bodyEl.classList.remove("quarto-dark");
-    }
-  }
-  const toggleBodyColorPrimary = () => {
-    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
-    if (bsSheetEl) {
-      toggleBodyColorMode(bsSheetEl);
-    }
-  }
-  toggleBodyColorPrimary();  
-  const icon = "";
-  const anchorJS = new window.AnchorJS();
-  anchorJS.options = {
-    placement: 'right',
-    icon: icon
-  };
-  anchorJS.add('.anchored');
-  const isCodeAnnotation = (el) => {
-    for (const clz of el.classList) {
-      if (clz.startsWith('code-annotation-')) {                     
-        return true;
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
       }
+      return false;
     }
-    return false;
-  }
-  const onCopySuccess = function(e) {
-    // button target
-    const button = e.trigger;
-    // don't keep focus
-    button.blur();
-    // flash "checked"
-    button.classList.add('code-copy-button-checked');
-    var currentTitle = button.getAttribute("title");
-    button.setAttribute("title", "Copied!");
-    let tooltip;
-    if (window.bootstrap) {
-      button.setAttribute("data-bs-toggle", "tooltip");
-      button.setAttribute("data-bs-placement", "left");
-      button.setAttribute("data-bs-title", "Copied!");
-      tooltip = new bootstrap.Tooltip(button, 
-        { trigger: "manual", 
-          customClass: "code-copy-button-tooltip",
-          offset: [0, -8]});
-      tooltip.show();    
-    }
-    setTimeout(function() {
-      if (tooltip) {
-        tooltip.hide();
-        button.removeAttribute("data-bs-title");
-        button.removeAttribute("data-bs-toggle");
-        button.removeAttribute("data-bs-placement");
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
       }
-      button.setAttribute("title", currentTitle);
-      button.classList.remove('code-copy-button-checked');
-    }, 1000);
-    // clear code selection
-    e.clearSelection();
-  }
-  const getTextToCopy = function(trigger) {
-      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
       for (const childEl of codeEl.children) {
         if (isCodeAnnotation(childEl)) {
           childEl.remove();
         }
       }
       return codeEl.innerText;
-  }
-  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
-    text: getTextToCopy
-  });
-  clipboard.on('success', onCopySuccess);
-  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
-    // For code content inside modals, clipBoardJS needs to be initialized with a container option
-    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
-    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
-      text: getTextToCopy,
-      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
     });
-    clipboardModal.on('success', onCopySuccess);
-  }
-    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
-    var mailtoRegex = new RegExp(/^mailto:/);
-      var filterRegex = new RegExp('/' + window.location.host + '/');
-    var isInternal = (href) => {
-        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
     }
-    // Inspect non-navigation links and adorn them if external
- 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
-    for (var i=0; i<links.length; i++) {
-      const link = links[i];
-      if (!isInternal(link.href)) {
-        // undo the damage that might have been done by quarto-nav.js in the case of
-        // links that we want to consider external
-        if (link.dataset.originalHref !== undefined) {
-          link.href = link.dataset.originalHref;
-        }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
       }
-    }
-  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
-    const config = {
-      allowHTML: true,
-      maxWidth: 500,
-      delay: 100,
-      arrow: false,
-      appendTo: function(el) {
-          return el.parentElement;
-      },
-      interactive: true,
-      interactiveBorder: 10,
-      theme: 'quarto',
-      placement: 'bottom-start',
-    };
-    if (contentFn) {
-      config.content = contentFn;
-    }
-    if (onTriggerFn) {
-      config.onTrigger = onTriggerFn;
-    }
-    if (onUntriggerFn) {
-      config.onUntrigger = onUntriggerFn;
-    }
-    window.tippy(el, config); 
-  }
-  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
-  for (var i=0; i<noterefs.length; i++) {
-    const ref = noterefs[i];
-    tippyHover(ref, function() {
-      // use id or data attribute instead here
-      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
-      try { href = new URL(href).hash; } catch {}
-      const id = href.replace(/^#\/?/, "");
-      const note = window.document.getElementById(id);
-      if (note) {
-        return note.innerHTML;
-      } else {
-        return "";
-      }
-    });
-  }
-  const xrefs = window.document.querySelectorAll('a.quarto-xref');
-  const processXRef = (id, note) => {
-    // Strip column container classes
-    const stripColumnClz = (el) => {
-      el.classList.remove("page-full", "page-columns");
-      if (el.children) {
-        for (const child of el.children) {
-          stripColumnClz(child);
-        }
-      }
-    }
-    stripColumnClz(note)
-    if (id === null || id.startsWith('sec-')) {
-      // Special case sections, only their first couple elements
-      const container = document.createElement("div");
-      if (note.children && note.children.length > 2) {
-        container.appendChild(note.children[0].cloneNode(true));
-        for (let i = 1; i < note.children.length; i++) {
-          const child = note.children[i];
-          if (child.tagName === "P" && child.innerText === "") {
-            continue;
-          } else {
-            container.appendChild(child.cloneNode(true));
-            break;
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
           }
         }
-        if (window.Quarto?.typesetMath) {
-          window.Quarto.typesetMath(container);
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
         }
-        return container.innerHTML
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
       } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
         if (window.Quarto?.typesetMath) {
           window.Quarto.typesetMath(note);
         }
-        return note.innerHTML;
-      }
-    } else {
-      // Remove any anchor links if they are present
-      const anchorLink = note.querySelector('a.anchorjs-link');
-      if (anchorLink) {
-        anchorLink.remove();
-      }
-      if (window.Quarto?.typesetMath) {
-        window.Quarto.typesetMath(note);
-      }
-      // TODO in 1.5, we should make sure this works without a callout special case
-      if (note.classList.contains("callout")) {
-        return note.outerHTML;
-      } else {
-        return note.innerHTML;
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
       }
     }
-  }
-  for (var i=0; i<xrefs.length; i++) {
-    const xref = xrefs[i];
-    tippyHover(xref, undefined, function(instance) {
-      instance.disable();
-      let url = xref.getAttribute('href');
-      let hash = undefined; 
-      if (url.startsWith('#')) {
-        hash = url;
-      } else {
-        try { hash = new URL(url).hash; } catch {}
-      }
-      if (hash) {
-        const id = hash.replace(/^#\/?/, "");
-        const note = window.document.getElementById(id);
-        if (note !== null) {
-          try {
-            const html = processXRef(id, note.cloneNode(true));
-            instance.setContent(html);
-          } finally {
-            instance.enable();
-            instance.show();
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
           }
         } else {
-          // See if we can fetch this
-          fetch(url.split('#')[0])
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
           .then(res => res.text())
           .then(html => {
             const parser = new DOMParser();
             const htmlDoc = parser.parseFromString(html, "text/html");
-            const note = htmlDoc.getElementById(id);
+            const note = htmlDoc.querySelector('main.content');
             if (note !== null) {
-              const html = processXRef(id, note);
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
               instance.setContent(html);
             } 
           }).finally(() => {
@@ -1332,185 +1329,161 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             instance.show();
           });
         }
-      } else {
-        // See if we can fetch a full url (with no hash to target)
-        // This is a special case and we should probably do some content thinning / targeting
-        fetch(url)
-        .then(res => res.text())
-        .then(html => {
-          const parser = new DOMParser();
-          const htmlDoc = parser.parseFromString(html, "text/html");
-          const note = htmlDoc.querySelector('main.content');
-          if (note !== null) {
-            // This should only happen for chapter cross references
-            // (since there is no id in the URL)
-            // remove the first header
-            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
-              note.children[0].remove();
-            }
-            const html = processXRef(null, note);
-            instance.setContent(html);
-          } 
-        }).finally(() => {
-          instance.enable();
-          instance.show();
-        });
-      }
-    }, function(instance) {
-    });
-  }
-      let selectedAnnoteEl;
-      const selectorForAnnotation = ( cell, annotation) => {
-        let cellAttr = 'data-code-cell="' + cell + '"';
-        let lineAttr = 'data-code-annotation="' +  annotation + '"';
-        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
-        return selector;
-      }
-      const selectCodeLines = (annoteEl) => {
-        const doc = window.document;
-        const targetCell = annoteEl.getAttribute("data-target-cell");
-        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
-        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
-        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
-        const lineIds = lines.map((line) => {
-          return targetCell + "-" + line;
-        })
-        let top = null;
-        let height = null;
-        let parent = null;
-        if (lineIds.length > 0) {
-            //compute the position of the single el (top and bottom and make a div)
-            const el = window.document.getElementById(lineIds[0]);
-            top = el.offsetTop;
-            height = el.offsetHeight;
-            parent = el.parentElement.parentElement;
-          if (lineIds.length > 1) {
-            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
-            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
-            height = bottom - top;
-          }
-          if (top !== null && height !== null && parent !== null) {
-            // cook up a div (if necessary) and position it 
-            let div = window.document.getElementById("code-annotation-line-highlight");
-            if (div === null) {
-              div = window.document.createElement("div");
-              div.setAttribute("id", "code-annotation-line-highlight");
-              div.style.position = 'absolute';
-              parent.appendChild(div);
-            }
-            div.style.top = top - 2 + "px";
-            div.style.height = height + 4 + "px";
-            div.style.left = 0;
-            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
-            if (gutterDiv === null) {
-              gutterDiv = window.document.createElement("div");
-              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
-              gutterDiv.style.position = 'absolute';
-              const codeCell = window.document.getElementById(targetCell);
-              const gutter = codeCell.querySelector('.code-annotation-gutter');
-              gutter.appendChild(gutterDiv);
-            }
-            gutterDiv.style.top = top - 2 + "px";
-            gutterDiv.style.height = height + 4 + "px";
-          }
-          selectedAnnoteEl = annoteEl;
-        }
-      };
-      const unselectCodeLines = () => {
-        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
-        elementsIds.forEach((elId) => {
-          const div = window.document.getElementById(elId);
-          if (div) {
-            div.remove();
-          }
-        });
-        selectedAnnoteEl = undefined;
-      };
-        // Handle positioning of the toggle
-    window.addEventListener(
-      "resize",
-      throttle(() => {
-        elRect = undefined;
-        if (selectedAnnoteEl) {
-          selectCodeLines(selectedAnnoteEl);
-        }
-      }, 10)
-    );
-    function throttle(fn, ms) {
-    let throttle = false;
-    let timer;
-      return (...args) => {
-        if(!throttle) { // first call gets through
-            fn.apply(this, args);
-            throttle = true;
-        } else { // all the others get throttled
-            if(timer) clearTimeout(timer); // cancel #2
-            timer = setTimeout(() => {
-              fn.apply(this, args);
-              timer = throttle = false;
-            }, ms);
-        }
-      };
-    }
-      // Attach click handler to the DT
-      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
-      for (const annoteDlNode of annoteDls) {
-        annoteDlNode.addEventListener('click', (event) => {
-          const clickedEl = event.target;
-          if (clickedEl !== selectedAnnoteEl) {
-            unselectCodeLines();
-            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
-            if (activeEl) {
-              activeEl.classList.remove('code-annotation-active');
-            }
-            selectCodeLines(clickedEl);
-            clickedEl.classList.add('code-annotation-active');
-          } else {
-            // Unselect the line
-            unselectCodeLines();
-            clickedEl.classList.remove('code-annotation-active');
-          }
-        });
-      }
-  const findCites = (el) => {
-    const parentEl = el.parentElement;
-    if (parentEl) {
-      const cites = parentEl.dataset.cites;
-      if (cites) {
-        return {
-          el,
-          cites: cites.split(' ')
-        };
-      } else {
-        return findCites(el.parentElement)
-      }
-    } else {
-      return undefined;
-    }
-  };
-  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
-  for (var i=0; i<bibliorefs.length; i++) {
-    const ref = bibliorefs[i];
-    const citeInfo = findCites(ref);
-    if (citeInfo) {
-      tippyHover(citeInfo.el, function() {
-        var popup = window.document.createElement('div');
-        citeInfo.cites.forEach(function(cite) {
-          var citeDiv = window.document.createElement('div');
-          citeDiv.classList.add('hanging-indent');
-          citeDiv.classList.add('csl-entry');
-          var biblioDiv = window.document.getElementById('ref-' + cite);
-          if (biblioDiv) {
-            citeDiv.innerHTML = biblioDiv.innerHTML;
-          }
-          popup.appendChild(citeDiv);
-        });
-        return popup.innerHTML;
+      }, function(instance) {
       });
     }
-  }
-});
-</script>
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
 </div> <!-- /content -->
 
 

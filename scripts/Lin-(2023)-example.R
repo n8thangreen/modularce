@@ -8,7 +8,8 @@
 
 library(tibble)
 library(dplyr)
-
+## source model functions
+source("R/source_all.R")
 
 ## define model data
 
